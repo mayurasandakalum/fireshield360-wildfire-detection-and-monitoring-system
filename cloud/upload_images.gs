@@ -1,3 +1,0 @@
-function uploadImages() {
-  // ...existing code...
-}

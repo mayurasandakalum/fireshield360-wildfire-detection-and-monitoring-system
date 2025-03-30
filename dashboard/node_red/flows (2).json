@@ -1,0 +1,77 @@
+[
+    {
+        "id": "4d88a924c8afc9d8",
+        "type": "tab",
+        "label": "Flow 3",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "aab1f4868e09786e",
+        "type": "mongodb3 in",
+        "z": "4d88a924c8afc9d8",
+        "service": "_ext_",
+        "configNode": "96d0854305108ffb",
+        "name": "MongoDB Insert",
+        "collection": "sensor_readings",
+        "operation": "insert",
+        "x": 540,
+        "y": 160,
+        "wires": [
+            [
+                "2d5c3b6232d47af0"
+            ]
+        ]
+    },
+    {
+        "id": "5085d56243f75988",
+        "type": "inject",
+        "z": "4d88a924c8afc9d8",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"name\":\"mayura\"}",
+        "payloadType": "json",
+        "x": 230,
+        "y": 160,
+        "wires": [
+            [
+                "aab1f4868e09786e"
+            ]
+        ]
+    },
+    {
+        "id": "2d5c3b6232d47af0",
+        "type": "debug",
+        "z": "4d88a924c8afc9d8",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 780,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "96d0854305108ffb",
+        "type": "mongodb3",
+        "uri": "mongodb+srv://mssellapperuma:EKSOZqVkv1D6DOj1@fireshield360-db.zswaym5.mongodb.net/iot_sensors?retryWrites=true&w=majority&appName=fireshield360-db",
+        "name": "MongoDB Atlas - mssellapperuma",
+        "options": "",
+        "parallelism": -1
+    }
+]
