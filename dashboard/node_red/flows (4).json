@@ -1,0 +1,144 @@
+[
+    {
+        "id": "3ec689c3f067a8b4",
+        "type": "tab",
+        "label": "Flow 3",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "96d0854305108ffb",
+        "type": "mongodb3",
+        "uri": "mongodb+srv://mssellapperuma:EKSOZqVkv1D6DOj1@fireshield360-db.zswaym5.mongodb.net/iot_sensors?retryWrites=true&w=majority&appName=fireshield360-db",
+        "name": "MongoDB Atlas - mssellapperuma",
+        "options": "",
+        "parallelism": -1
+    },
+    {
+        "id": "87227569b7947505",
+        "type": "mongodb3",
+        "uri": "mongodb+srv://mssellapperuma:EKSOZqVkv1D6DOj1@fireshield360-db.zswaym5.mongodb.net/iot_sensors?retryWrites=true&w=majority&appName=fireshield360-db",
+        "name": "MongoDB Atlas - mssellapperuma",
+        "options": "",
+        "parallelism": -1
+    },
+    {
+        "id": "616e3dfc2bfea159",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "0a3995fec7984525ba12af5d3b4b7323.s1.eu.hivemq.cloud",
+        "port": "8883",
+        "tls": "",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": true,
+        "protocolVersion": "5",
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "ea620dd4cc2b50e4",
+        "type": "mongodb3",
+        "uri": "mongodb+srv://fireshield360-admin:fireshield360-admin@cluster0.tcubgpd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0/fireshield360-db",
+        "name": "fireshield360-mongodb",
+        "options": "",
+        "parallelism": -1
+    },
+    {
+        "id": "d9cf9707f5c4d513",
+        "type": "mongodb3 in",
+        "z": "3ec689c3f067a8b4",
+        "service": "_ext_",
+        "configNode": "ea620dd4cc2b50e4",
+        "name": "MongoDB Insert",
+        "collection": "sensor-readings",
+        "operation": "insert",
+        "x": 540,
+        "y": 260,
+        "wires": [
+            [
+                "136653cfa0d07ec2"
+            ]
+        ]
+    },
+    {
+        "id": "28967c4cf5412673",
+        "type": "inject",
+        "z": "3ec689c3f067a8b4",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"name\":\"mayura\"}",
+        "payloadType": "json",
+        "x": 230,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "136653cfa0d07ec2",
+        "type": "debug",
+        "z": "3ec689c3f067a8b4",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 760,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "7ee0e73a6c034372",
+        "type": "mqtt in",
+        "z": "3ec689c3f067a8b4",
+        "name": "",
+        "topic": "/sensors/esp32_01/dht11/data",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "616e3dfc2bfea159",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 280,
+        "y": 260,
+        "wires": [
+            [
+                "d9cf9707f5c4d513"
+            ]
+        ]
+    }
+]
