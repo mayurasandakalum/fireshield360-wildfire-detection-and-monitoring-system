@@ -59,7 +59,7 @@ bool ensureMQTTConnected()
     return client.connected();
 }
 
-bool publishSensorData(float temperature, float humidity, const char *topic)
+bool publishSensorData(float temperature, float humidity, int smoke, bool smokeDetected, const char *topic)
 {
     if (!ensureMQTTConnected())
     {
@@ -70,6 +70,8 @@ bool publishSensorData(float temperature, float humidity, const char *topic)
     JsonDocument doc;
     doc["temperature"] = temperature;
     doc["humidity"] = humidity;
+    doc["smoke"] = smoke;
+    doc["smoke_detected"] = smokeDetected;
 
     // Add properly formatted timestamp
     char timeBuffer[25];
@@ -79,7 +81,7 @@ bool publishSensorData(float temperature, float humidity, const char *topic)
     doc["device_id"] = "esp32_01";
 
     // Serialize JSON to a string
-    char buffer[200];
+    char buffer[256];
     serializeJson(doc, buffer);
 
     // Publish the message

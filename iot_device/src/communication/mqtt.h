@@ -13,6 +13,9 @@ bool ensureMQTTConnected();
 // Publish temperature and humidity data
 bool publishSensorData(float temperature, float humidity, const char *topic);
 
+// Publish temperature, humidity and smoke data
+bool publishSensorData(float temperature, float humidity, int smoke, bool smokeDetected, const char *topic);
+
 // Get connection status
 bool isMQTTConnected();
 
