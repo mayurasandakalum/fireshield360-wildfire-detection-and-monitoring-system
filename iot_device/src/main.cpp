@@ -1,16 +1,19 @@
 #include <Arduino.h>
 #include "sensors/temperature.h"
 #include "sensors/humidity.h"
+#include "sensors/smoke.h"
 #include "communication/wifi.h"
 #include "communication/mqtt.h"
 #include "communication/time_sync.h"
 
-// DHT11 sensor pin
-const int DHT_PIN = 4; // GPIO4 for DHT11 sensor
+// Sensor pins
+const int DHT_PIN = 4;    // GPIO4 for DHT11 sensor
+const int SMOKE_PIN = 34; // GPIO34 for MQ2 sensor
 
 // Variables to store sensor values
 float temperature = 0.0;
 float humidity = 0.0;
+int smokeValue = 0;
 
 // WiFi credentials
 const char *ssid = "NeuralNet";
@@ -33,12 +36,16 @@ void setup()
 {
   // Initialize serial communication
   Serial.begin(115200);
-  Serial.println("FireShield 360 - Temperature and Humidity Monitoring");
+  Serial.println("FireShield 360 - Temperature, Humidity and Smoke Monitoring");
 
   // Initialize temperature & humidity sensors (DHT11)
   Serial.println("Initializing DHT11 sensor...");
   initTemperatureSensor(DHT_PIN);
   initHumiditySensor(DHT_PIN);
+
+  // Initialize smoke sensor (MQ2)
+  Serial.println("Initializing MQ2 smoke sensor...");
+  initSmokeSensor(SMOKE_PIN);
 
   // Initialize WiFi with built-in LED indication
   initWiFi(ssid, password);
@@ -71,6 +78,7 @@ void loop()
   // Read sensors
   temperature = readTemperature();
   humidity = readHumidity();
+  smokeValue = readSmokeValue();
 
   // Process MQTT messages
   processMQTTMessages();
@@ -84,8 +92,15 @@ void loop()
     {
       lastPublishTime = currentTime;
 
-      // Publish to MQTT
-      publishSensorData(temperature, humidity, mqtt_topic);
+      // Check if smoke is detected
+      bool smokeDetected = isSmokeDetected();
+      if (smokeDetected)
+      {
+        Serial.println("ALERT: Smoke detected!");
+      }
+
+      // Publish to MQTT with smoke data
+      publishSensorData(temperature, humidity, smokeValue, smokeDetected, mqtt_topic);
     }
   }
   else
