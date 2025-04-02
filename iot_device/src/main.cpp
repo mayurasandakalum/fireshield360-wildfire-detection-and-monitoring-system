@@ -7,8 +7,9 @@
 #include "communication/time_sync.h"
 
 // Sensor pins
-const int DHT_PIN = 4;    // GPIO4 for DHT11 sensor
-const int SMOKE_PIN = 34; // GPIO34 for MQ2 sensor
+const int DHT_PIN = 4;      // GPIO4 for DHT11 sensor
+const int SMOKE_PIN = 34;   // GPIO34 for MQ2 sensor
+const int WIFI_LED_PIN = 5; // GPIO5 for WiFi status LED
 
 // Variables to store sensor values
 float temperature = 0.0;
@@ -47,8 +48,8 @@ void setup()
   Serial.println("Initializing MQ2 smoke sensor...");
   initSmokeSensor(SMOKE_PIN);
 
-  // Initialize WiFi with built-in LED indication
-  initWiFi(ssid, password);
+  // Initialize WiFi with external LED on GPIO 5
+  initWiFi(ssid, password, WIFI_LED_PIN);
 
   // Initialize time synchronization
   initTimeSync();
