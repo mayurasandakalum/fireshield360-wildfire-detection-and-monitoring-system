@@ -5,12 +5,13 @@
 #include "communication/wifi.h"
 #include "communication/mqtt.h"
 #include "communication/time_sync.h"
-#include "actuators/led.h" // Include the LED module
+#include "actuators/led.h"
+#include "display/oled_display.h" // Include the OLED display module
 
 // Sensor pins
-const int DHT_PIN = 4;      // GPIO4 for DHT11 sensor
-const int SMOKE_PIN = 34;   // GPIO34 for MQ2 sensor
-const int WIFI_LED_PIN = 5; // GPIO5 for WiFi status LED
+const int DHT_PIN = 4;       // GPIO4 for DHT11 sensor
+const int SMOKE_PIN = 34;    // GPIO34 for MQ2 sensor
+const int WIFI_LED_PIN = 27; // GPIO27 for WiFi status LED
 
 // Sensor status LED pins
 const int TEMP_HUM_LED_PIN = 12; // GPIO12 for temperature/humidity sensor status
@@ -38,6 +39,10 @@ const char *mqtt_password = "3K<,d5afbCPRAr.0$4Dl";
 unsigned long lastPublishTime = 0;
 const long publishInterval = 5000; // Publish data every 5 seconds
 
+// Last time display was updated
+unsigned long lastDisplayTime = 0;
+const long displayInterval = 2000; // Update display every 2 seconds
+
 void setup()
 {
   // Initialize serial communication
@@ -48,6 +53,17 @@ void setup()
   initLed(TEMP_HUM_LED_PIN);
   initLed(SMOKE_LED_PIN);
   Serial.println("Sensor status LEDs initialized on pins 12 and 13");
+
+  // Initialize OLED display
+  if (initDisplay())
+  {
+    Serial.println("OLED display initialized successfully");
+    displaySplashScreen(3000); // Show splash screen for 3 seconds
+  }
+  else
+  {
+    Serial.println("Failed to initialize OLED display");
+  }
 
   // Initialize temperature & humidity sensors (DHT11)
   Serial.println("Initializing DHT11 sensor...");
@@ -69,6 +85,9 @@ void setup()
 
   // Wait for the sensor to stabilize
   delay(2000);
+
+  // Show a welcome message on the display
+  textDisplay("FireShield 360");
 
   Serial.println("System initialized and ready.");
 }
@@ -113,11 +132,25 @@ void loop()
   // Process MQTT messages
   processMQTTMessages();
 
+  // Update OLED display at regular intervals
+  unsigned long currentTime = millis();
+  if (currentTime - lastDisplayTime >= displayInterval)
+  {
+    lastDisplayTime = currentTime;
+    if (isTemperatureReadingValid() && isHumidityReadingValid() && isSmokeReadingValid())
+    {
+      displaySensorData(temperature, humidity, smokeValue);
+    }
+    else
+    {
+      textDisplay("Sensor Error!");
+    }
+  }
+
   // Check if readings are valid
   if (isTemperatureReadingValid() && isHumidityReadingValid())
   {
     // Publish data to MQTT at regular intervals
-    unsigned long currentTime = millis();
     if (currentTime - lastPublishTime >= publishInterval)
     {
       lastPublishTime = currentTime;
@@ -132,5 +165,5 @@ void loop()
   }
 
   // Wait before next reading
-  delay(3000);
+  delay(1000);
 }
