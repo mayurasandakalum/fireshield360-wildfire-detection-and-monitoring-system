@@ -133,6 +133,7 @@ bool publishSensorData(float temperature, float humidity, int smoke, const char 
         Serial.print("Data published to MQTT: ");
         Serial.println(topic);
         Serial.println(buffer);
+        Serial.println("");
     }
     else
     {
