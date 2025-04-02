@@ -4,26 +4,26 @@
 // The pin number for the built-in LED
 const int LED_PIN = 2; // GPIO2 is the built-in LED on most ESP32 dev boards
 
-void initLed()
+void initLed(int pin)
 {
-    pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, LOW);
+    pinMode(pin, OUTPUT);
+    digitalWrite(pin, LOW);
 }
 
-void turnOnLed()
+void turnOnLed(int pin)
 {
-    digitalWrite(LED_PIN, HIGH);
+    digitalWrite(pin, HIGH);
 }
 
-void turnOffLed()
+void turnOffLed(int pin)
 {
-    digitalWrite(LED_PIN, LOW);
+    digitalWrite(pin, LOW);
 }
 
-void blinkLed(int delayMs)
+void blinkLed(int pin, int delayMs)
 {
-    turnOnLed();
+    turnOnLed(pin);
     delay(delayMs);
-    turnOffLed();
+    turnOffLed(pin);
     delay(delayMs);
 }

@@ -5,10 +5,16 @@
 #include "communication/wifi.h"
 #include "communication/mqtt.h"
 #include "communication/time_sync.h"
+#include "actuators/led.h" // Include the LED module
 
 // Sensor pins
-const int DHT_PIN = 4;    // GPIO4 for DHT11 sensor
-const int SMOKE_PIN = 34; // GPIO34 for MQ2 sensor
+const int DHT_PIN = 4;      // GPIO4 for DHT11 sensor
+const int SMOKE_PIN = 34;   // GPIO34 for MQ2 sensor
+const int WIFI_LED_PIN = 5; // GPIO5 for WiFi status LED
+
+// Sensor status LED pins
+const int TEMP_HUM_LED_PIN = 12; // GPIO12 for temperature/humidity sensor status
+const int SMOKE_LED_PIN = 13;    // GPIO13 for smoke sensor status
 
 // Variables to store sensor values
 float temperature = 0.0;
@@ -22,7 +28,7 @@ const char *password = "camtasia";
 // MQTT Broker details
 const char *mqtt_server = "0a3995fec7984525ba12af5d3b4b7323.s1.eu.hivemq.cloud";
 const int mqtt_port = 8883;
-const char *mqtt_topic = "/sensors/esp32_01/dht11/data";
+const char *mqtt_topic = "esp32_01/sensors/data";
 
 // MQTT credentials
 const char *mqtt_username = "hivemq.webclient.1742623130057";
@@ -38,6 +44,11 @@ void setup()
   Serial.begin(115200);
   Serial.println("FireShield 360 - Temperature, Humidity and Smoke Monitoring");
 
+  // Initialize sensor status LEDs using the LED module
+  initLed(TEMP_HUM_LED_PIN);
+  initLed(SMOKE_LED_PIN);
+  Serial.println("Sensor status LEDs initialized on pins 12 and 13");
+
   // Initialize temperature & humidity sensors (DHT11)
   Serial.println("Initializing DHT11 sensor...");
   initTemperatureSensor(DHT_PIN);
@@ -47,8 +58,8 @@ void setup()
   Serial.println("Initializing MQ2 smoke sensor...");
   initSmokeSensor(SMOKE_PIN);
 
-  // Initialize WiFi with built-in LED indication
-  initWiFi(ssid, password);
+  // Initialize WiFi with external LED on GPIO 5
+  initWiFi(ssid, password, WIFI_LED_PIN);
 
   // Initialize time synchronization
   initTimeSync();
@@ -80,6 +91,25 @@ void loop()
   humidity = readHumidity();
   smokeValue = readSmokeValue();
 
+  // Update sensor status LEDs using the LED module
+  if (isTemperatureReadingValid() && isHumidityReadingValid())
+  {
+    turnOnLed(TEMP_HUM_LED_PIN);
+  }
+  else
+  {
+    turnOffLed(TEMP_HUM_LED_PIN);
+  }
+
+  if (isSmokeReadingValid())
+  {
+    turnOnLed(SMOKE_LED_PIN);
+  }
+  else
+  {
+    turnOffLed(SMOKE_LED_PIN);
+  }
+
   // Process MQTT messages
   processMQTTMessages();
 
@@ -92,15 +122,8 @@ void loop()
     {
       lastPublishTime = currentTime;
 
-      // Check if smoke is detected
-      bool smokeDetected = isSmokeDetected();
-      if (smokeDetected)
-      {
-        Serial.println("ALERT: Smoke detected!");
-      }
-
-      // Publish to MQTT with smoke data
-      publishSensorData(temperature, humidity, smokeValue, smokeDetected, mqtt_topic);
+      // Publish to MQTT with raw smoke value
+      publishSensorData(temperature, humidity, smokeValue, mqtt_topic);
     }
   }
   else

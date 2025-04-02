@@ -100,6 +100,49 @@ bool publishSensorData(float temperature, float humidity, int smoke, bool smokeD
     return result;
 }
 
+// New function for publishing sensor data without smoke detection flag
+bool publishSensorData(float temperature, float humidity, int smoke, const char *topic)
+{
+    if (!ensureMQTTConnected())
+    {
+        return false;
+    }
+
+    // Create a JSON document
+    JsonDocument doc;
+    doc["temperature"] = temperature;
+    doc["humidity"] = humidity;
+    doc["smoke"] = smoke;
+
+    // Add properly formatted timestamp
+    char timeBuffer[25];
+    getFormattedTime(timeBuffer, sizeof(timeBuffer));
+    doc["timestamp"] = timeBuffer;
+
+    doc["device_id"] = "esp32_01";
+
+    // Serialize JSON to a string
+    char buffer[256];
+    serializeJson(doc, buffer);
+
+    // Publish the message
+    bool result = client.publish(topic, buffer);
+
+    if (result)
+    {
+        Serial.print("Data published to MQTT: ");
+        Serial.println(topic);
+        Serial.println(buffer);
+        Serial.println("");
+    }
+    else
+    {
+        Serial.println("Failed to publish data to MQTT");
+    }
+
+    return result;
+}
+
 bool isMQTTConnected()
 {
     return client.connected();
