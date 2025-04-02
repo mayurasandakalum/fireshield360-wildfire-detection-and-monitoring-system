@@ -28,7 +28,7 @@ const char *password = "camtasia";
 // MQTT Broker details
 const char *mqtt_server = "0a3995fec7984525ba12af5d3b4b7323.s1.eu.hivemq.cloud";
 const int mqtt_port = 8883;
-const char *mqtt_topic = "/sensors/esp32_01/dht11/data";
+const char *mqtt_topic = "esp32_01/sensors/data";
 
 // MQTT credentials
 const char *mqtt_username = "hivemq.webclient.1742623130057";
@@ -122,15 +122,8 @@ void loop()
     {
       lastPublishTime = currentTime;
 
-      // Check if smoke is detected
-      bool smokeDetected = isSmokeDetected();
-      if (smokeDetected)
-      {
-        Serial.println("ALERT: Smoke detected!");
-      }
-
-      // Publish to MQTT with smoke data
-      publishSensorData(temperature, humidity, smokeValue, smokeDetected, mqtt_topic);
+      // Publish to MQTT with raw smoke value
+      publishSensorData(temperature, humidity, smokeValue, mqtt_topic);
     }
   }
   else
