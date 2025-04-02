@@ -37,11 +37,11 @@ const char *mqtt_password = "3K<,d5afbCPRAr.0$4Dl";
 
 // Last time data was sent
 unsigned long lastPublishTime = 0;
-const long publishInterval = 5000; // Publish data every 5 seconds
+const long publishInterval = 1000; // Publish data every 1 seconds
 
 // Last time display was updated
 unsigned long lastDisplayTime = 0;
-const long displayInterval = 2000; // Update display every 2 seconds
+const long displayInterval = 1000; // Update display every 1 seconds
 
 void setup()
 {
