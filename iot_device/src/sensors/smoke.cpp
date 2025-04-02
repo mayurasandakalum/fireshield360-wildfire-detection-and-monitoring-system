@@ -84,11 +84,11 @@ int readSmokeValue()
 
         lastReadTime = currentTime;
 
-        // Debug output
-        Serial.print("Smoke sensor reading: ");
-        Serial.print(lastSmokeValue);
-        Serial.print(" Valid: ");
-        Serial.println(smokeReadingValid ? "Yes" : "No");
+        // // Debug output
+        // Serial.print("Smoke sensor reading: ");
+        // Serial.print(lastSmokeValue);
+        // Serial.print(" Valid: ");
+        // Serial.println(smokeReadingValid ? "Yes" : "No");
     }
     return lastSmokeValue;
 }
