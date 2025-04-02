@@ -5,11 +5,16 @@
 #include "communication/wifi.h"
 #include "communication/mqtt.h"
 #include "communication/time_sync.h"
+#include "actuators/led.h" // Include the LED module
 
 // Sensor pins
 const int DHT_PIN = 4;      // GPIO4 for DHT11 sensor
 const int SMOKE_PIN = 34;   // GPIO34 for MQ2 sensor
 const int WIFI_LED_PIN = 5; // GPIO5 for WiFi status LED
+
+// Sensor status LED pins
+const int TEMP_HUM_LED_PIN = 12; // GPIO12 for temperature/humidity sensor status
+const int SMOKE_LED_PIN = 13;    // GPIO13 for smoke sensor status
 
 // Variables to store sensor values
 float temperature = 0.0;
@@ -38,6 +43,11 @@ void setup()
   // Initialize serial communication
   Serial.begin(115200);
   Serial.println("FireShield 360 - Temperature, Humidity and Smoke Monitoring");
+
+  // Initialize sensor status LEDs using the LED module
+  initLed(TEMP_HUM_LED_PIN);
+  initLed(SMOKE_LED_PIN);
+  Serial.println("Sensor status LEDs initialized on pins 12 and 13");
 
   // Initialize temperature & humidity sensors (DHT11)
   Serial.println("Initializing DHT11 sensor...");
@@ -80,6 +90,25 @@ void loop()
   temperature = readTemperature();
   humidity = readHumidity();
   smokeValue = readSmokeValue();
+
+  // Update sensor status LEDs using the LED module
+  if (isTemperatureReadingValid() && isHumidityReadingValid())
+  {
+    turnOnLed(TEMP_HUM_LED_PIN);
+  }
+  else
+  {
+    turnOffLed(TEMP_HUM_LED_PIN);
+  }
+
+  if (isSmokeReadingValid())
+  {
+    turnOnLed(SMOKE_LED_PIN);
+  }
+  else
+  {
+    turnOffLed(SMOKE_LED_PIN);
+  }
 
   // Process MQTT messages
   processMQTTMessages();
