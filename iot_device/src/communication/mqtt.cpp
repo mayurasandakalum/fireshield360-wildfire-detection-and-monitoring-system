@@ -71,7 +71,7 @@ bool publishSensorData(float temperature, float humidity, int smoke, bool wildfi
     doc["temperature"] = temperature;
     doc["humidity"] = humidity;
     doc["smoke"] = smoke;
-    doc["smoke_detected"] = (smoke > 1500);      // Simple threshold for smoke detection
+    // Removed smoke_detected field as requested
     doc["wildfire_detected"] = wildfireDetected; // Add wildfire detection status
 
     // Add properly formatted timestamp
