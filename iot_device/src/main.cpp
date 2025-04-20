@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <ArduinoJson.h> // Add ArduinoJson include
 #include "sensors/temperature.h"
 #include "sensors/humidity.h"
 #include "sensors/smoke.h"
@@ -37,6 +38,7 @@ const char *password = "camtasia";
 const char *mqtt_server = "7ce36aef28e949f4b384e4808389cffc.s1.eu.hivemq.cloud";
 const int mqtt_port = 8883;
 const char *mqtt_topic = "esp32_01/sensors/data";
+const char *mqtt_wildfire_topic = "esp32_01/wildfire/alert"; // Add new topic for wildfire alerts
 
 // MQTT credentials
 const char *mqtt_username = "hivemq.webclient.1745152369573";
@@ -49,6 +51,10 @@ const long publishInterval = 1000; // Publish data every 1 seconds
 // Last time display was updated
 unsigned long lastDisplayTime = 0;
 const long displayInterval = 1000; // Update display every 1 seconds
+
+// Last time wildfire alert was sent
+unsigned long lastWildfireAlertTime = 0;
+const long wildfireAlertInterval = 60000; // Send alert every 60 seconds when wildfire detected
 
 void setup()
 {
@@ -158,10 +164,30 @@ void loop()
     {
       turnOffLed(WILDFIRE_ALERT_LED_PIN);
     }
+
+    // Send wildfire alert via MQTT at regular intervals
+    unsigned long currentTime = millis();
+    if (currentTime - lastWildfireAlertTime >= wildfireAlertInterval)
+    {
+      lastWildfireAlertTime = currentTime;
+
+      // Use the dedicated function from mqtt.h to publish the wildfire alert
+      if (publishWildfireAlert(temperature, humidity, smokeValue,
+                               getNumberOfThresholdsExceeded(temperature, humidity, smokeValue),
+                               mqtt_wildfire_topic))
+      {
+        Serial.println("Wildfire alert published to MQTT");
+      }
+      else
+      {
+        Serial.println("Failed to publish wildfire alert");
+      }
+    }
   }
   else
   {
     turnOffLed(WILDFIRE_ALERT_LED_PIN);
+    lastWildfireAlertTime = 0; // Reset the timer when no wildfire is detected
   }
 
   // Update OLED display at regular intervals

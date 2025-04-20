@@ -22,6 +22,9 @@ bool publishSensorData(float temperature, float humidity, int smoke, bool smokeD
 // Publish temperature, humidity and smoke data with wildfire detection status
 bool publishSensorData(float temperature, float humidity, int smoke, bool wildfireDetected, const char *topic);
 
+// Publish wildfire alert data
+bool publishWildfireAlert(float temperature, float humidity, int smoke, int thresholdsExceeded, const char *topic);
+
 // Get connection status
 bool isMQTTConnected();
 

@@ -154,6 +154,48 @@ bool publishSensorData(float temperature, float humidity, int smoke, const char 
     return result;
 }
 
+// New function for publishing wildfire alerts
+bool publishWildfireAlert(float temperature, float humidity, int smoke, int thresholdsExceeded, const char *topic)
+{
+    if (!ensureMQTTConnected())
+    {
+        return false;
+    }
+
+    // Create a JSON document for the alert
+    JsonDocument alertDoc;
+    alertDoc["device_id"] = "esp32_01";
+    alertDoc["wildfire_detected"] = true;
+    alertDoc["temperature"] = temperature;
+    alertDoc["humidity"] = humidity;
+    alertDoc["smoke"] = smoke;
+    alertDoc["thresholds_exceeded"] = thresholdsExceeded;
+
+    // Add properly formatted timestamp
+    char timeBuffer[25];
+    getFormattedTime(timeBuffer, sizeof(timeBuffer));
+    alertDoc["timestamp"] = timeBuffer;
+
+    // Serialize JSON to a string
+    char buffer[256];
+    serializeJson(alertDoc, buffer);
+
+    // Publish the message
+    bool result = client.publish(topic, buffer);
+
+    if (result)
+    {
+        Serial.println("Wildfire alert published to MQTT:");
+        Serial.println(buffer);
+    }
+    else
+    {
+        Serial.println("Failed to publish wildfire alert to MQTT");
+    }
+
+    return result;
+}
+
 bool isMQTTConnected()
 {
     return client.connected();
