@@ -27,13 +27,13 @@ const char *ssid = "NeuralNet";
 const char *password = "camtasia";
 
 // MQTT Broker details
-const char *mqtt_server = "0a3995fec7984525ba12af5d3b4b7323.s1.eu.hivemq.cloud";
+const char *mqtt_server = "7ce36aef28e949f4b384e4808389cffc.s1.eu.hivemq.cloud";
 const int mqtt_port = 8883;
 const char *mqtt_topic = "esp32_01/sensors/data";
 
 // MQTT credentials
-const char *mqtt_username = "hivemq.webclient.1742623130057";
-const char *mqtt_password = "3K<,d5afbCPRAr.0$4Dl";
+const char *mqtt_username = "hivemq.webclient.1745152369573";
+const char *mqtt_password = "f%h3.X!9WGm0HtoJ1sO&";
 
 // Last time data was sent
 unsigned long lastPublishTime = 0;
