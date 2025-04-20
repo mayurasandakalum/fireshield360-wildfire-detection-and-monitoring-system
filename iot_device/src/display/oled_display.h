@@ -24,6 +24,13 @@ extern Adafruit_SSD1306 display;
 // External declaration of the logo
 extern const unsigned char electronicshub_logo[];
 
+// External declaration of the warning icons and fire animation frames
+extern const unsigned char warning_icon[];
+extern const unsigned char large_warning_icon[];
+extern const unsigned char fire_anim_1[];
+extern const unsigned char fire_anim_2[];
+extern const unsigned char fire_anim_3[];
+
 // Function to initialize the OLED display
 bool initDisplay();
 
@@ -44,12 +51,15 @@ void drawTriangle();
 void drawFilledTriangle();
 
 // Function to display sensor data
-void displaySensorData(float temperature, float humidity, int smokeValue);
+void displaySensorData(float temperature, float humidity, int smokeValue, bool wildfireDetected = false);
 
 // Function to display a splash screen with logo
 void displaySplashScreen(uint16_t displayTime = 2000);
 
 // Function to clear the display
 void clearDisplay();
+
+// Include wildfire detection for threshold checks
+#include "../detection/wildfire_detection.h"
 
 #endif // OLED_DISPLAY_H

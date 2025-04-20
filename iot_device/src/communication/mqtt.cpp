@@ -59,7 +59,7 @@ bool ensureMQTTConnected()
     return client.connected();
 }
 
-bool publishSensorData(float temperature, float humidity, int smoke, bool smokeDetected, const char *topic)
+bool publishSensorData(float temperature, float humidity, int smoke, bool wildfireDetected, const char *topic)
 {
     if (!ensureMQTTConnected())
     {
@@ -71,7 +71,8 @@ bool publishSensorData(float temperature, float humidity, int smoke, bool smokeD
     doc["temperature"] = temperature;
     doc["humidity"] = humidity;
     doc["smoke"] = smoke;
-    doc["smoke_detected"] = smokeDetected;
+    doc["smoke_detected"] = (smoke > 1500);      // Simple threshold for smoke detection
+    doc["wildfire_detected"] = wildfireDetected; // Add wildfire detection status
 
     // Add properly formatted timestamp
     char timeBuffer[25];
@@ -79,6 +80,16 @@ bool publishSensorData(float temperature, float humidity, int smoke, bool smokeD
     doc["timestamp"] = timeBuffer;
 
     doc["device_id"] = "esp32_01";
+
+    // Add number of thresholds exceeded
+    int thresholdsExceeded = 0;
+    if (temperature > 40.0)
+        thresholdsExceeded++;
+    if (humidity < 30.0)
+        thresholdsExceeded++;
+    if (smoke > 1500)
+        thresholdsExceeded++;
+    doc["thresholds_exceeded"] = thresholdsExceeded;
 
     // Serialize JSON to a string
     char buffer[256];

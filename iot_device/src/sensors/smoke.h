@@ -14,7 +14,7 @@ int getSmokeValue();
 bool isSmokeReadingValid();
 
 // Get smoke detection threshold
-int getSmokeThreshold();
+int getLocalSmokeThreshold();
 
 // Set smoke detection threshold
 void setSmokeThreshold(int threshold);

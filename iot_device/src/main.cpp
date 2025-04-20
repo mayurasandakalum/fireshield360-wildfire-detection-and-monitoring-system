@@ -6,7 +6,8 @@
 #include "communication/mqtt.h"
 #include "communication/time_sync.h"
 #include "actuators/led.h"
-#include "display/oled_display.h" // Include the OLED display module
+#include "display/oled_display.h"
+#include "detection/wildfire_detection.h" // Add wildfire detection module
 
 // Sensor pins
 const int DHT_PIN = 4;       // GPIO4 for DHT11 sensor
@@ -17,10 +18,16 @@ const int WIFI_LED_PIN = 27; // GPIO27 for WiFi status LED
 const int TEMP_HUM_LED_PIN = 12; // GPIO12 for temperature/humidity sensor status
 const int SMOKE_LED_PIN = 13;    // GPIO13 for smoke sensor status
 
+// Add LED pin for wildfire alert
+const int WILDFIRE_ALERT_LED_PIN = 14; // GPIO14 for wildfire alert LED
+
 // Variables to store sensor values
 float temperature = 0.0;
 float humidity = 0.0;
 int smokeValue = 0;
+
+// Add a variable to track wildfire detection
+bool wildfireDetected = false;
 
 // WiFi credentials
 const char *ssid = "NeuralNet";
@@ -52,7 +59,8 @@ void setup()
   // Initialize sensor status LEDs using the LED module
   initLed(TEMP_HUM_LED_PIN);
   initLed(SMOKE_LED_PIN);
-  Serial.println("Sensor status LEDs initialized on pins 12 and 13");
+  initLed(WILDFIRE_ALERT_LED_PIN); // Add wildfire alert LED
+  Serial.println("Sensor status LEDs initialized on pins 12, 13 and 14");
 
   // Initialize OLED display
   if (initDisplay())
@@ -73,6 +81,9 @@ void setup()
   // Initialize smoke sensor (MQ2)
   Serial.println("Initializing MQ2 smoke sensor...");
   initSmokeSensor(SMOKE_PIN);
+
+  // Initialize wildfire detection with default thresholds
+  initWildfireDetection();
 
   // Initialize WiFi with external LED on GPIO 5
   initWiFi(ssid, password, WIFI_LED_PIN);
@@ -132,6 +143,27 @@ void loop()
   // Process MQTT messages
   processMQTTMessages();
 
+  // Check for wildfire conditions
+  wildfireDetected = isWildfireDetected(temperature, humidity, smokeValue);
+
+  // Update wildfire alert LED
+  if (wildfireDetected)
+  {
+    // Blink the LED for wildfire alert
+    if ((millis() / 500) % 2 == 0)
+    {
+      turnOnLed(WILDFIRE_ALERT_LED_PIN);
+    }
+    else
+    {
+      turnOffLed(WILDFIRE_ALERT_LED_PIN);
+    }
+  }
+  else
+  {
+    turnOffLed(WILDFIRE_ALERT_LED_PIN);
+  }
+
   // Update OLED display at regular intervals
   unsigned long currentTime = millis();
   if (currentTime - lastDisplayTime >= displayInterval)
@@ -139,7 +171,7 @@ void loop()
     lastDisplayTime = currentTime;
     if (isTemperatureReadingValid() && isHumidityReadingValid() && isSmokeReadingValid())
     {
-      displaySensorData(temperature, humidity, smokeValue);
+      displaySensorData(temperature, humidity, smokeValue, wildfireDetected);
     }
     else
     {
@@ -155,8 +187,8 @@ void loop()
     {
       lastPublishTime = currentTime;
 
-      // Publish to MQTT with raw smoke value
-      publishSensorData(temperature, humidity, smokeValue, mqtt_topic);
+      // Publish to MQTT with wildfire detection status
+      publishSensorData(temperature, humidity, smokeValue, wildfireDetected, mqtt_topic);
     }
   }
   else
