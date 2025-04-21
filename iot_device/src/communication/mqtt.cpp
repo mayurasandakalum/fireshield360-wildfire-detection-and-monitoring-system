@@ -59,6 +59,7 @@ bool ensureMQTTConnected()
     return client.connected();
 }
 
+// Original version without IR temperature - kept for backward compatibility
 bool publishSensorData(float temperature, float humidity, int smoke, bool wildfireDetected, const char *topic)
 {
     if (!ensureMQTTConnected())
@@ -111,7 +112,50 @@ bool publishSensorData(float temperature, float humidity, int smoke, bool wildfi
     return result;
 }
 
-// New function for publishing sensor data without smoke detection flag
+// New version with IR temperature
+bool publishSensorData(float temperature, float humidity, int smokeValue, float irTemperature, bool wildfireDetected, const char *topic)
+{
+    if (!ensureMQTTConnected())
+    {
+        return false;
+    }
+
+    // Create a JSON document using non-deprecated constructor
+    JsonDocument doc;
+    doc["temperature"] = temperature;
+    doc["humidity"] = humidity;
+    doc["smoke"] = smokeValue;
+    doc["ir_temperature"] = irTemperature; // Add IR temperature
+    doc["wildfire_detected"] = wildfireDetected;
+
+    // Add properly formatted timestamp
+    char timeBuffer[25];
+    getFormattedTime(timeBuffer, sizeof(timeBuffer));
+    doc["timestamp"] = timeBuffer;
+
+    doc["device_id"] = "esp32_01";
+
+    // Serialize JSON to a string
+    char buffer[256];
+    serializeJson(doc, buffer);
+
+    // Publish the message
+    bool result = client.publish(topic, buffer);
+
+    if (result)
+    {
+        Serial.println("Data published to MQTT:");
+        Serial.println(buffer);
+    }
+    else
+    {
+        Serial.println("Failed to publish data to MQTT");
+    }
+
+    return result;
+}
+
+// Original version without smoke detection flag - kept for backward compatibility
 bool publishSensorData(float temperature, float humidity, int smoke, const char *topic)
 {
     if (!ensureMQTTConnected())
@@ -154,7 +198,7 @@ bool publishSensorData(float temperature, float humidity, int smoke, const char 
     return result;
 }
 
-// New function for publishing wildfire alerts
+// Original version without IR temperature - kept for backward compatibility
 bool publishWildfireAlert(float temperature, float humidity, int smoke, int thresholdsExceeded, const char *topic)
 {
     if (!ensureMQTTConnected())
@@ -169,6 +213,50 @@ bool publishWildfireAlert(float temperature, float humidity, int smoke, int thre
     alertDoc["temperature"] = temperature;
     alertDoc["humidity"] = humidity;
     alertDoc["smoke"] = smoke;
+    alertDoc["thresholds_exceeded"] = thresholdsExceeded;
+
+    // Add properly formatted timestamp
+    char timeBuffer[25];
+    getFormattedTime(timeBuffer, sizeof(timeBuffer));
+    alertDoc["timestamp"] = timeBuffer;
+
+    // Serialize JSON to a string
+    char buffer[256];
+    serializeJson(alertDoc, buffer);
+
+    // Publish the message
+    bool result = client.publish(topic, buffer);
+
+    if (result)
+    {
+        Serial.println("Wildfire alert published to MQTT:");
+        Serial.println(buffer);
+    }
+    else
+    {
+        Serial.println("Failed to publish wildfire alert to MQTT");
+    }
+
+    return result;
+}
+
+// New version with IR temperature
+bool publishWildfireAlert(float temperature, float humidity, int smokeValue, float irTemperature,
+                          int thresholdsExceeded, const char *topic)
+{
+    if (!ensureMQTTConnected())
+    {
+        return false;
+    }
+
+    // Create a JSON document for the alert
+    JsonDocument alertDoc;
+    alertDoc["device_id"] = "esp32_01";
+    alertDoc["wildfire_detected"] = true;
+    alertDoc["temperature"] = temperature;
+    alertDoc["humidity"] = humidity;
+    alertDoc["smoke"] = smokeValue;
+    alertDoc["ir_temperature"] = irTemperature; // Add IR temperature
     alertDoc["thresholds_exceeded"] = thresholdsExceeded;
 
     // Add properly formatted timestamp

@@ -1,14 +1,16 @@
 #include <Arduino.h>
-#include <ArduinoJson.h> // Add ArduinoJson include
+#include <ArduinoJson.h>
+#include <Wire.h> // Add Wire.h include for I2C communication
 #include "sensors/temperature.h"
 #include "sensors/humidity.h"
 #include "sensors/smoke.h"
+#include "sensors/infrared.h" // Add infrared sensor include
 #include "communication/wifi.h"
 #include "communication/mqtt.h"
 #include "communication/time_sync.h"
 #include "actuators/led.h"
 #include "display/oled_display.h"
-#include "detection/wildfire_detection.h" // Add wildfire detection module
+#include "detection/wildfire_detection.h"
 
 // Sensor pins
 const int DHT_PIN = 4;       // GPIO4 for DHT11 sensor
@@ -26,6 +28,7 @@ const int WILDFIRE_ALERT_LED_PIN = 14; // GPIO14 for wildfire alert LED
 float temperature = 0.0;
 float humidity = 0.0;
 int smokeValue = 0;
+float irTemperature = 0.0; // Add variable for infrared temperature
 
 // Add a variable to track wildfire detection
 bool wildfireDetected = false;
@@ -62,6 +65,10 @@ void setup()
   Serial.begin(115200);
   Serial.println("FireShield 360 - Temperature, Humidity and Smoke Monitoring");
 
+  // Initialize I2C communication
+  Wire.begin(21, 22); // SDA on GPIO 21, SCL on GPIO 22
+  Serial.println("I2C initialized with SDA=21, SCL=22");
+
   // Initialize sensor status LEDs using the LED module
   initLed(TEMP_HUM_LED_PIN);
   initLed(SMOKE_LED_PIN);
@@ -87,6 +94,10 @@ void setup()
   // Initialize smoke sensor (MQ2)
   Serial.println("Initializing MQ2 smoke sensor...");
   initSmokeSensor(SMOKE_PIN);
+
+  // Initialize infrared temperature sensor (MLX90614)
+  Serial.println("Initializing MLX90614 infrared sensor...");
+  initInfraredSensor();
 
   // Initialize wildfire detection with default thresholds
   initWildfireDetection();
@@ -126,6 +137,7 @@ void loop()
   temperature = readTemperature();
   humidity = readHumidity();
   smokeValue = readSmokeValue();
+  irTemperature = readObjectTemperature();
 
   // Update sensor status LEDs using the LED module
   if (isTemperatureReadingValid() && isHumidityReadingValid())
@@ -149,8 +161,8 @@ void loop()
   // Process MQTT messages
   processMQTTMessages();
 
-  // Check for wildfire conditions
-  wildfireDetected = isWildfireDetected(temperature, humidity, smokeValue);
+  // Check for wildfire conditions - now includes IR temperature
+  wildfireDetected = isWildfireDetected(temperature, humidity, smokeValue, irTemperature);
 
   // Update wildfire alert LED
   if (wildfireDetected)
@@ -172,8 +184,8 @@ void loop()
       lastWildfireAlertTime = currentTime;
 
       // Use the dedicated function from mqtt.h to publish the wildfire alert
-      if (publishWildfireAlert(temperature, humidity, smokeValue,
-                               getNumberOfThresholdsExceeded(temperature, humidity, smokeValue),
+      if (publishWildfireAlert(temperature, humidity, smokeValue, irTemperature,
+                               getNumberOfThresholdsExceeded(temperature, humidity, smokeValue, irTemperature),
                                mqtt_wildfire_topic))
       {
         Serial.println("Wildfire alert published to MQTT");
@@ -195,9 +207,9 @@ void loop()
   if (currentTime - lastDisplayTime >= displayInterval)
   {
     lastDisplayTime = currentTime;
-    if (isTemperatureReadingValid() && isHumidityReadingValid() && isSmokeReadingValid())
+    if (isTemperatureReadingValid() && isHumidityReadingValid() && isSmokeReadingValid() && isInfraredReadingValid())
     {
-      displaySensorData(temperature, humidity, smokeValue, wildfireDetected);
+      displaySensorData(temperature, humidity, smokeValue, irTemperature, wildfireDetected);
     }
     else
     {
@@ -214,7 +226,7 @@ void loop()
       lastPublishTime = currentTime;
 
       // Publish to MQTT with wildfire detection status
-      publishSensorData(temperature, humidity, smokeValue, wildfireDetected, mqtt_topic);
+      publishSensorData(temperature, humidity, smokeValue, irTemperature, wildfireDetected, mqtt_topic);
     }
   }
   else

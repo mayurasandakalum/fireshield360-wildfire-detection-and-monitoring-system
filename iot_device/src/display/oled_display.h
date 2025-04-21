@@ -50,8 +50,8 @@ void drawFilledCircle();
 void drawTriangle();
 void drawFilledTriangle();
 
-// Function to display sensor data
-void displaySensorData(float temperature, float humidity, int smokeValue, bool wildfireDetected = false);
+// Function to display sensor data (updated to include IR temperature)
+void displaySensorData(float temperature, float humidity, int smokeValue, float irTemperature, bool wildfireDetected = false);
 
 // Function to display a splash screen with logo
 void displaySplashScreen(uint16_t displayTime = 2000);

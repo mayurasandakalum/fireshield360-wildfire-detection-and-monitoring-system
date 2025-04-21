@@ -497,19 +497,128 @@ void displaySensorData(float temperature, float humidity, int smokeValue, bool w
     }
     yPos += 9; // Reduce spacing from 10 to 9
 
-    // Display thresholds exceeded
+    // Display thresholds exceeded - Fix: Pass 0.0 as default IR temperature
     display.setCursor(0, yPos);
-    int thresholdsExceeded = getNumberOfThresholdsExceeded(temperature, humidity, smokeValue);
+    int thresholdsExceeded = getNumberOfThresholdsExceeded(temperature, humidity, smokeValue, 0.0);
     display.print("Alerts: ");
     display.print(thresholdsExceeded);
-    display.print("/3");
-    yPos += 9; // Reduce spacing from 10 to 9
+    display.print("/4"); // Update to reflect 4 possible alerts now
+    yPos += 9;           // Reduce spacing from 10 to 9
 
     // Display time since last update - ensure it's fully visible
     display.setCursor(0, yPos);
     display.print("Update: "); // Shortened from "Last update: " to save space
     display.print(millis() / 1000);
     display.print("s"); // Removed println to avoid extra line feed
+
+    // Update the display
+    display.display();
+}
+
+// Updated to include IR temperature
+void displaySensorData(float temperature, float humidity, int smokeValue, float irTemperature, bool wildfireDetected)
+{
+    display.clearDisplay();
+
+    // Define the display bands
+    const int YELLOW_BAND_HEIGHT = 16; // 25% of 64 pixels (2 rows of text)
+
+    // Draw the yellow band on top (for title area)
+    display.fillRect(0, 0, SCREEN_WIDTH, YELLOW_BAND_HEIGHT, SSD1306_WHITE);
+
+    // Set text properties for title in yellow area (black text on yellow background)
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_BLACK);
+
+    if (wildfireDetected)
+    {
+        // Animate the warning text in the yellow band
+        int animPhase = (millis() / 200) % 4; // 4 animation phases, changing every 200ms
+
+        switch (animPhase)
+        {
+        case 0:
+            display.setCursor(4, 4);
+            display.print("! WILDFIRE ALERT !");
+            break;
+        case 1:
+            display.setCursor(4, 4);
+            display.print(" WILDFIRE ALERT  ");
+            break;
+        case 2:
+            display.setCursor(4, 4);
+            display.print("  WILDFIRE ALERT ");
+            break;
+        case 3:
+            display.setCursor(4, 4);
+            display.print(" ! DANGER ! ");
+            break;
+        }
+
+        // Draw small warning triangle on the right side
+        display.drawBitmap(110, 0, warning_icon, 16, 16, SSD1306_BLACK);
+    }
+    else
+    {
+        display.setCursor(0, 4); // Center vertically in yellow band
+        display.println(" Sensor Readings ");
+    }
+
+    // Switch to white text on black for the blue area
+    display.setTextColor(SSD1306_WHITE);
+
+    // Start a bit closer to the yellow band to save space
+    int yPos = YELLOW_BAND_HEIGHT + 1;
+
+    // Display temperature with threshold indicator
+    display.setCursor(0, yPos);
+    display.print("Temp: ");
+    display.print(temperature);
+    display.print(" C");
+    if (isTemperatureExceedingThreshold(temperature))
+    {
+        display.print(" !");
+    }
+    yPos += 9; // Reduce spacing from 10 to 9
+
+    // Display humidity with threshold indicator
+    display.setCursor(0, yPos);
+    display.print("Humidity: ");
+    display.print(humidity);
+    display.print(" %");
+    if (isHumidityBelowThreshold(humidity))
+    {
+        display.print(" !");
+    }
+    yPos += 9; // Reduce spacing from 10 to 9
+
+    // Display smoke value with threshold indicator
+    display.setCursor(0, yPos);
+    display.print("Smoke: ");
+    display.print(smokeValue);
+    if (isSmokeExceedingThreshold(smokeValue))
+    {
+        display.print(" !");
+    }
+    yPos += 9; // Reduce spacing from 10 to 9
+
+    // Display IR temperature with threshold indicator
+    display.setCursor(0, yPos);
+    display.print("IR Temp: ");
+    display.print(irTemperature);
+    display.print(" C");
+    if (isIRTemperatureExceedingThreshold(irTemperature))
+    {
+        display.print(" !");
+    }
+    yPos += 9; // Reduce spacing from 10 to 9
+
+    // Display thresholds exceeded
+    display.setCursor(0, yPos);
+    int thresholdsExceeded = getNumberOfThresholdsExceeded(temperature, humidity, smokeValue, irTemperature);
+    display.print("Alerts: ");
+    display.print(thresholdsExceeded);
+    display.print("/4");
 
     // Update the display
     display.display();

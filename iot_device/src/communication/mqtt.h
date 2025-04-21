@@ -1,34 +1,31 @@
 #ifndef MQTT_H
 #define MQTT_H
 
-#include <PubSubClient.h>
+#include <Arduino.h>
 #include <WiFiClientSecure.h>
+#include <PubSubClient.h>
+#include <ArduinoJson.h>
 
 // Initialize MQTT client
 void initMQTT(const char *server, int port, const char *username, const char *password);
 
-// Ensure MQTT connection is active
+// Ensure MQTT is connected
 bool ensureMQTTConnected();
 
-// Publish temperature and humidity data
-bool publishSensorData(float temperature, float humidity, const char *topic);
-
-// Publish temperature, humidity and smoke data (without smoke detection)
-bool publishSensorData(float temperature, float humidity, int smoke, const char *topic);
-
-// Publish temperature, humidity and smoke data
-bool publishSensorData(float temperature, float humidity, int smoke, bool smokeDetected, const char *topic);
-
-// Publish temperature, humidity and smoke data with wildfire detection status
-bool publishSensorData(float temperature, float humidity, int smoke, bool wildfireDetected, const char *topic);
-
-// Publish wildfire alert data
-bool publishWildfireAlert(float temperature, float humidity, int smoke, int thresholdsExceeded, const char *topic);
-
-// Get connection status
-bool isMQTTConnected();
-
-// Process MQTT messages (must be called regularly)
+// Process incoming MQTT messages
 void processMQTTMessages();
+
+// Publish sensor data to MQTT (updated to include IR temperature)
+bool publishSensorData(float temperature, float humidity, int smokeValue, float irTemperature, bool wildfireDetected, const char *topic);
+
+// Publish wildfire alert to MQTT (updated to include IR temperature)
+bool publishWildfireAlert(float temperature, float humidity, int smokeValue, float irTemperature,
+                          int thresholdsExceeded, const char *topic);
+
+// Subscribe to a topic
+bool subscribeTopic(const char *topic);
+
+// Unsubscribe from a topic
+bool unsubscribeTopic(const char *topic);
 
 #endif // MQTT_H

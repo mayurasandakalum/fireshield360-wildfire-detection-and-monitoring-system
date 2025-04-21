@@ -2,9 +2,10 @@
 #include "wildfire_detection.h"
 
 // Default threshold values
-static float temperatureThreshold = 30.0; // in Celsius, temperatures above this are dangerous
-static float humidityThreshold = 30;      // in percent, humidity below this is dangerous
-static int smokeThreshold = 1500;         // Raw sensor value, above this indicates smoke
+static float temperatureThreshold = 30.0;   // in Celsius, temperatures above this are dangerous
+static float humidityThreshold = 30;        // in percent, humidity below this is dangerous
+static int smokeThreshold = 1500;           // Raw sensor value, above this indicates smoke
+static float irTemperatureThreshold = 40.0; // in Celsius, IR temperatures above this are dangerous
 
 void initWildfireDetection()
 {
@@ -17,13 +18,17 @@ void initWildfireDetection()
     Serial.println(" %");
     Serial.print("Smoke: > ");
     Serial.println(smokeThreshold);
+    Serial.print("IR Temperature: > ");
+    Serial.print(irTemperatureThreshold);
+    Serial.println(" °C");
 }
 
-void setWildfireThresholds(float tempThreshold, float humidityThreshold, int smokeThreshold)
+void setWildfireThresholds(float tempThreshold, float humidityThreshold, int smokeThreshold, float irTempThreshold)
 {
     temperatureThreshold = tempThreshold;
     humidityThreshold = humidityThreshold;
     smokeThreshold = smokeThreshold;
+    irTemperatureThreshold = irTempThreshold;
 
     Serial.println("Updated wildfire detection thresholds:");
     Serial.print("Temperature: > ");
@@ -34,6 +39,9 @@ void setWildfireThresholds(float tempThreshold, float humidityThreshold, int smo
     Serial.println(" %");
     Serial.print("Smoke: > ");
     Serial.println(smokeThreshold);
+    Serial.print("IR Temperature: > ");
+    Serial.print(irTemperatureThreshold);
+    Serial.println(" °C");
 }
 
 float getTemperatureThreshold()
@@ -51,6 +59,11 @@ int getSmokeThreshold()
     return smokeThreshold;
 }
 
+float getIRTemperatureThreshold()
+{
+    return irTemperatureThreshold;
+}
+
 bool isTemperatureExceedingThreshold(float temperature)
 {
     return temperature > temperatureThreshold;
@@ -66,7 +79,12 @@ bool isSmokeExceedingThreshold(int smokeValue)
     return smokeValue > smokeThreshold;
 }
 
-int getNumberOfThresholdsExceeded(float temperature, float humidity, int smokeValue)
+bool isIRTemperatureExceedingThreshold(float irTemperature)
+{
+    return irTemperature > irTemperatureThreshold;
+}
+
+int getNumberOfThresholdsExceeded(float temperature, float humidity, int smokeValue, float irTemperature)
 {
     int count = 0;
 
@@ -76,12 +94,14 @@ int getNumberOfThresholdsExceeded(float temperature, float humidity, int smokeVa
         count++;
     if (isSmokeExceedingThreshold(smokeValue))
         count++;
+    if (isIRTemperatureExceedingThreshold(irTemperature))
+        count++;
 
     return count;
 }
 
-bool isWildfireDetected(float temperature, float humidity, int smokeValue)
+bool isWildfireDetected(float temperature, float humidity, int smokeValue, float irTemperature)
 {
     // Wildfire is detected when at least 2 sensors exceed thresholds
-    return getNumberOfThresholdsExceeded(temperature, humidity, smokeValue) >= 2;
+    return getNumberOfThresholdsExceeded(temperature, humidity, smokeValue, irTemperature) >= 2;
 }
