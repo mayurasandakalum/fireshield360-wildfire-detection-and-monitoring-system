@@ -2,6 +2,7 @@ import requests
 import time
 from datetime import datetime
 from config import CAPTURE_URL
+from utils.terminal import print_error, print_warning
 
 
 def capture_image(timeout=10):
@@ -11,8 +12,10 @@ def capture_image(timeout=10):
         if response.status_code == 200:
             return response.content
         else:
-            print(f"Failed to capture image. Status code: {response.status_code}")
+            print_warning(
+                f"Failed to capture image. Status code: {response.status_code}"
+            )
             return None
     except Exception as e:
-        print(f"Error capturing image: {e}")
+        print_error(f"Error capturing image: {e}")
         return None

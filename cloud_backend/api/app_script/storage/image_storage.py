@@ -3,6 +3,7 @@ import time
 import json
 from datetime import datetime
 from config import IMAGE_FOLDER, CAPTURE_DURATION_SECONDS, CAPTURE_INTERVAL_SECONDS
+from utils.terminal import print_info, print_error, print_success
 
 # Ensure the base image folder exists
 os.makedirs(IMAGE_FOLDER, exist_ok=True)
@@ -16,7 +17,7 @@ def create_alert_folder(timestamp=None):
     safe_timestamp = timestamp.replace(":", "-").replace(" ", "_")
     alert_folder = os.path.join(IMAGE_FOLDER, f"alert_{safe_timestamp}")
     os.makedirs(alert_folder, exist_ok=True)
-    print(f"Created alert folder: {alert_folder}")
+    print_info(f"Created alert folder: {alert_folder}")
     return alert_folder
 
 
@@ -62,7 +63,7 @@ def save_image(
         # Save original image
         with open(original_path, "wb") as f:
             f.write(image_data)
-        print(f"Original image saved to {original_path}")
+        print_success(f"Original image saved to {original_path}")
 
         # Save detection metadata if available
         if detection_result:
@@ -88,5 +89,5 @@ def save_image(
         return original_path, None, None
 
     except Exception as e:
-        print(f"Error saving image: {e}")
+        print_error(f"Error saving image: {e}")
         return None, None, None

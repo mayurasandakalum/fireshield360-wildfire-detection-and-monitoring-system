@@ -15,6 +15,14 @@ from config import (
     AI_IOU_THRESHOLD,
 )
 from ai_detection.fire_detector import FireDetector
+from utils.terminal import (
+    print_info,
+    print_warning,
+    print_error,
+    print_alert,
+    print_separator,
+    print_success,
+)
 
 # Create AI models directory
 os.makedirs(AI_MODELS_DIR, exist_ok=True)
@@ -39,39 +47,39 @@ def capture_images_for_duration(
 
     # Check if model file exists
     if not os.path.exists(AI_MODEL_PATH):
-        print(f"Warning: YOLO model not found at {AI_MODEL_PATH}")
-        print(
+        print_warning(f"YOLO model not found at {AI_MODEL_PATH}")
+        print_warning(
             f"Please download a YOLOv8 model and place it in the {AI_MODELS_DIR} directory"
         )
-        print("Fire detection will be skipped")
+        print_warning("Fire detection will be skipped")
         use_ai = False
     else:
         # Preload the model
         if not fire_detector.load_model():
-            print("Warning: Failed to load YOLO model")
-            print("Fire detection will be skipped")
+            print_warning("Failed to load YOLO model")
+            print_warning("Fire detection will be skipped")
             use_ai = False
         else:
             use_ai = True
-            print("YOLO model loaded successfully for fire detection")
+            print_success("YOLO model loaded successfully for fire detection")
 
     while time.time() < end_time:
-        print(f"Capturing image {image_count+1}...")
+        print_info(f"Capturing image {image_count+1}...")
         image_data = capture_image()
 
         if image_data:
             # Process with AI if model is available
             detection_result = None
             if use_ai:
-                print("Processing image with YOLO fire detection model...")
+                print_info("Processing image with YOLO fire detection model...")
                 result_img, detection_text, fire_detected, detection_info = (
                     fire_detector.detect(image_data)
                 )
 
                 if result_img is not None:
-                    print(f"Detection result: {detection_text}")
+                    print_info(f"Detection result: {detection_text}")
                     if fire_detected:
-                        print("FIRE/SMOKE DETECTED IN IMAGE!")
+                        print_alert("FIRE/SMOKE DETECTED IN IMAGE!")
 
                     detection_result = (
                         result_img,
@@ -88,7 +96,7 @@ def capture_images_for_duration(
             # Save detection image if available
             if detection_result and detection_result[0] is not None:
                 fire_detector.save_detection_image(detection_result[0], detection_path)
-                print(f"Detection image saved to {detection_path}")
+                print_success(f"Detection image saved to {detection_path}")
 
             image_count += 1
 
@@ -109,7 +117,8 @@ def on_message(client, userdata, msg):
         if msg.topic == "esp32_01/wildfire/alert" and payload.get(
             "wildfire_detected", False
         ):
-            print(f"Wildfire alert received: {payload}")
+            print_alert(f"Wildfire alert received: {payload}")
+            print_separator()
 
             # Get timestamp from the payload or use current time
             timestamp = payload.get(
@@ -130,9 +139,9 @@ def on_message(client, userdata, msg):
             )
             image_thread.daemon = True
             image_thread.start()
-            print(
+            print_info(
                 f"Started image capture process for {CAPTURE_DURATION_SECONDS} seconds"
             )
 
     except Exception as e:
-        print(f"Error processing MQTT message: {e}")
+        print_error(f"Error processing MQTT message: {e}")

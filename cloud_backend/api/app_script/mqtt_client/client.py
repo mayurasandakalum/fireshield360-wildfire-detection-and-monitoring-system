@@ -2,17 +2,21 @@ import paho.mqtt.client as mqtt
 import ssl
 import uuid
 from config import MQTT_BROKER, MQTT_PORT, MQTT_USER, MQTT_PASSWORD, MQTT_TOPIC_ALERT
+from utils.terminal import print_info, print_error, print_success, print_warning
 
 
 def on_connect(client, userdata, flags, rc):
-    print(f"Connected to MQTT broker with result code {rc}")
-    # Subscribe to wildfire alerts topic
-    client.subscribe(MQTT_TOPIC_ALERT)
-    print(f"Subscribed to {MQTT_TOPIC_ALERT}")
+    if rc == 0:
+        print_success(f"Connected to MQTT broker successfully")
+        # Subscribe to wildfire alerts topic
+        client.subscribe(MQTT_TOPIC_ALERT)
+        print_info(f"Subscribed to {MQTT_TOPIC_ALERT}")
+    else:
+        print_error(f"Failed to connect to MQTT broker with result code {rc}")
 
 
 def on_connect_fail(client, userdata):
-    print(f"Connection failed: Check broker address and credentials")
+    print_error(f"Connection failed: Check broker address and credentials")
 
 
 def setup_mqtt(message_callback):
@@ -43,11 +47,11 @@ def setup_mqtt(message_callback):
     client.on_connect_fail = on_connect_fail
 
     # Connect to broker
-    print(f"Connecting to MQTT broker at {MQTT_BROKER}:{MQTT_PORT}")
+    print_info(f"Connecting to MQTT broker at {MQTT_BROKER}:{MQTT_PORT}")
     try:
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
-        print("Connection attempt initiated")
+        print_info("Connection attempt initiated")
     except Exception as e:
-        print(f"Connection error: {e}")
+        print_error(f"Connection error: {e}")
 
     return client

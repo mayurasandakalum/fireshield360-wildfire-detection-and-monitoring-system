@@ -4,6 +4,7 @@ import os
 from ultralytics import YOLO
 from PIL import Image
 import io
+from utils.terminal import print_info, print_error, print_warning, print_success
 
 # Set environment variable to avoid issues with OpenCV
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -19,12 +20,12 @@ class FireDetector:
     def load_model(self):
         """Load the YOLO model"""
         try:
-            print(f"Loading YOLO model from {self.model_path}")
+            print_info(f"Loading YOLO model from {self.model_path}")
             self.model = YOLO(self.model_path)
-            print("YOLO model loaded successfully")
+            print_success("YOLO model loaded successfully")
             return True
         except Exception as e:
-            print(f"Error loading YOLO model: {e}")
+            print_error(f"Error loading YOLO model: {e}")
             return False
 
     def detect(self, image_data):
@@ -106,7 +107,7 @@ class FireDetector:
             return result_img, detection_text, fire_detected, detection_info
 
         except Exception as e:
-            print(f"Error detecting fire/smoke: {e}")
+            print_error(f"Error detecting fire/smoke: {e}")
             return None, f"Error: {str(e)}", False, {}
 
     def save_detection_image(self, detection_img, output_path):
@@ -115,5 +116,5 @@ class FireDetector:
             cv2.imwrite(output_path, detection_img)
             return output_path
         except Exception as e:
-            print(f"Error saving detection image: {e}")
+            print_error(f"Error saving detection image: {e}")
             return None

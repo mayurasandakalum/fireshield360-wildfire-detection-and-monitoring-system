@@ -21,6 +21,6 @@ CAPTURE_INTERVAL_SECONDS = 5
 
 # AI Detection settings
 AI_MODELS_DIR = os.path.join(BASE_DIR, "fire_models")
-AI_MODEL_PATH = os.path.join(AI_MODELS_DIR, "yolov8l.pt")
+AI_MODEL_PATH = os.path.join(AI_MODELS_DIR, "fire_l.pt")
 AI_CONF_THRESHOLD = 0.25
 AI_IOU_THRESHOLD = 0.45
