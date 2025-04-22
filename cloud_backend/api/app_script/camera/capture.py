@@ -1,7 +1,7 @@
 import requests
 import time
 from datetime import datetime
-from ..config import CAPTURE_URL
+from config import CAPTURE_URL
 
 
 def capture_image(timeout=10):
