@@ -2,9 +2,9 @@
 #include "wildfire_detection.h"
 
 // Default threshold values
-static float temperatureThreshold = 30.0;   // in Celsius, temperatures above this are dangerous
-static float humidityThreshold = 30;        // in percent, humidity below this is dangerous
-static int smokeThreshold = 1500;           // Raw sensor value, above this indicates smoke
+static float temperatureThreshold = 40.0;   // in Celsius, temperatures above this are dangerous
+static float humidityThreshold = 50;        // in percent, humidity below this is dangerous
+static int smokeThreshold = 1800;           // Raw sensor value, above this indicates smoke
 static float irTemperatureThreshold = 40.0; // in Celsius, IR temperatures above this are dangerous
 
 void initWildfireDetection()
