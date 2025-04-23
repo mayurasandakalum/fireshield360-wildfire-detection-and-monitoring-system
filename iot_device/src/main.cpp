@@ -109,8 +109,29 @@ void showSensorInitializationSequence(int redPin, int greenPin, int bluePin, con
   // Update display
   displaySensorCheck(sensorName);
 
-  // Turn off LED
-  digitalWrite(bluePin, LOW);
+  // Keep blue LED on to indicate sensor is being checked
+  // (Don't turn off LED at the end of checking)
+}
+
+// New function to set all sensor LEDs to green when initialization is complete
+void setAllSensorsToGreen()
+{
+  // Set Temperature/Humidity LED to green
+  digitalWrite(TEMP_HUM_RED_PIN, LOW);
+  digitalWrite(TEMP_HUM_GREEN_PIN, HIGH);
+  digitalWrite(TEMP_HUM_BLUE_PIN, LOW);
+
+  // Set IR Temperature LED to green
+  digitalWrite(IR_RED_PIN, LOW);
+  digitalWrite(IR_GREEN_PIN, HIGH);
+  digitalWrite(IR_BLUE_PIN, LOW);
+
+  // Set Smoke Sensor LED to green
+  digitalWrite(SMOKE_RED_PIN, LOW);
+  digitalWrite(SMOKE_GREEN_PIN, HIGH);
+  digitalWrite(SMOKE_BLUE_PIN, LOW);
+
+  delay(300); // Slight delay for visual effect
 }
 
 void setup()
@@ -152,6 +173,8 @@ void setup()
   showSensorInitializationSequence(IR_RED_PIN, IR_GREEN_PIN, IR_BLUE_PIN, "IR Temp sensor");
   showSensorInitializationSequence(SMOKE_RED_PIN, SMOKE_GREEN_PIN, SMOKE_BLUE_PIN, "Smoke sensor");
 
+  // At this point all sensor LEDs are still blue (kept on from showSensorInitializationSequence)
+
   // Initialize single color LEDs for other indicators
   displayInitStatus("Init status LEDs", 40);
   initLed(WILDFIRE_ALERT_LED_PIN);
@@ -191,8 +214,12 @@ void setup()
   displayInitStatus("Connecting MQTT...", 95);
   initMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_password);
 
-  // Wait for the sensor to stabilize
+  // After all initialization is complete, set all sensor LEDs to green
   displayInitStatus("System ready!", 100);
+
+  // Set all sensor LEDs to green to indicate successful initialization
+  setAllSensorsToGreen();
+
   delay(2000);
 
   // Show a welcome message on the display
