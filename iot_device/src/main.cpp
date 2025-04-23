@@ -13,26 +13,34 @@
 #include "detection/wildfire_detection.h"
 
 // Sensor pins
-const int DHT_PIN = 4;       // GPIO4 for DHT11 sensor
-const int SMOKE_PIN = 34;    // GPIO34 for MQ2 sensor
-const int WIFI_LED_PIN = 27; // GPIO27 for WiFi status LED
+const int DHT_PIN = 4;    // GPIO4 for DHT11 sensor
+const int SMOKE_PIN = 34; // GPIO34 for MQ2 sensor
 
 // RGB LED pins for temperature/humidity sensor
 const int TEMP_HUM_RED_PIN = 13;   // GPIO13 for RGB red
 const int TEMP_HUM_GREEN_PIN = 12; // GPIO12 for RGB green
 const int TEMP_HUM_BLUE_PIN = 14;  // GPIO14 for RGB blue
 
+// RGB LED pins for infrared temperature sensor
+const int IR_RED_PIN = 25;   // GPIO25 for RGB red
+const int IR_GREEN_PIN = 26; // GPIO26 for RGB green
+const int IR_BLUE_PIN = 27;  // GPIO27 for RGB blue
+
+// Note: The following pins were reassigned to the IR RGB LED
+// Previously SMOKE_LED_PIN = 25
+// Previously WILDFIRE_ALERT_LED_PIN = 26
+// Previously WIFI_LED_PIN = 27
+
+// Assign new pins for single-color LEDs
+const int SMOKE_LED_PIN = 32;          // Reassigned to GPIO32
+const int WILDFIRE_ALERT_LED_PIN = 33; // Reassigned to GPIO33
+const int WIFI_LED_PIN = 2;            // Reassigned to built-in LED on GPIO2
+
 // Temperature and humidity thresholds for RGB LED status
 const float TEMP_HIGH_THRESHOLD = 35.0; // Temperature > 35°C: High warning (Red)
 const float TEMP_LOW_THRESHOLD = 15.0;  // Temperature < 15°C: Low warning (Blue)
 const float HUM_HIGH_THRESHOLD = 70.0;  // Humidity > 70%: High warning (Red)
 const float HUM_LOW_THRESHOLD = 30.0;   // Humidity < 30%: Low warning (Blue)
-
-// Sensor status LED pins
-const int SMOKE_LED_PIN = 25; // GPIO25 for smoke sensor status
-
-// Add LED pin for wildfire alert
-const int WILDFIRE_ALERT_LED_PIN = 26; // GPIO26 for wildfire alert LED
 
 // Variables to store sensor values
 float temperature = 0.0;
@@ -82,10 +90,14 @@ void setup()
   // Initialize RGB LED for temperature/humidity sensor
   initRgbLed(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN);
 
-  // Show initialization sequence - blue blinking
-  showSensorInitializationSequence(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN);
+  // Initialize RGB LED for infrared temperature sensor
+  initRgbLed(IR_RED_PIN, IR_GREEN_PIN, IR_BLUE_PIN);
 
-  // Initialize sensor status LEDs using the LED module
+  // Show initialization sequence for both RGB LEDs - blue blinking
+  showSensorInitializationSequence(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN);
+  showSensorInitializationSequence(IR_RED_PIN, IR_GREEN_PIN, IR_BLUE_PIN);
+
+  // Initialize single color LEDs for other indicators
   initLed(SMOKE_LED_PIN);
   initLed(WILDFIRE_ALERT_LED_PIN);
   Serial.println("Sensor status LEDs initialized");
@@ -175,7 +187,17 @@ void loop()
     }
   }
 
-  // Update smoke sensor status LED
+  // Update infrared temperature sensor status with RGB LED
+  bool irValid = isInfraredReadingValid();
+  bool irSensorStatus = updateSensorStatusLed(IR_RED_PIN, IR_GREEN_PIN, IR_BLUE_PIN, irValid);
+
+  // Debug info for infrared sensor errors
+  if (!irSensorStatus)
+  {
+    Serial.println("IR ERROR: Infrared temperature sensor disconnected or failed");
+  }
+
+  // Update smoke sensor status LED (using single color LED)
   if (isSmokeReadingValid())
   {
     turnOnLed(SMOKE_LED_PIN);
