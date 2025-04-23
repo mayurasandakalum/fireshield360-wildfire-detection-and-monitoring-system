@@ -623,3 +623,84 @@ void displaySensorData(float temperature, float humidity, int smokeValue, float 
     // Update the display
     display.display();
 }
+
+void displayInitStatus(const String &message, int progress)
+{
+    display.clearDisplay();
+
+    // Draw title
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(0, 0);
+    display.println("FireShield 360");
+    display.println("Initializing...");
+
+    // Draw horizontal line
+    display.drawLine(0, 16, SCREEN_WIDTH, 16, SSD1306_WHITE);
+
+    // Display the status message
+    display.setCursor(0, 20);
+    display.println(message);
+
+    // Draw progress bar if progress value is provided
+    if (progress >= 0 && progress <= 100)
+    {
+        // Draw progress bar outline
+        display.drawRect(0, 44, SCREEN_WIDTH, 10, SSD1306_WHITE);
+
+        // Draw progress bar fill
+        int fillWidth = (progress * (SCREEN_WIDTH - 4)) / 100;
+        display.fillRect(2, 46, fillWidth, 6, SSD1306_WHITE);
+
+        // Display percentage
+        display.setCursor(50, 56);
+        display.print(progress);
+        display.print("%");
+    }
+
+    display.display();
+}
+
+void displaySensorCheck(const String &sensorName)
+{
+    display.clearDisplay();
+
+    // Draw title
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(0, 0);
+    display.println("FireShield 360");
+
+    // Draw horizontal line
+    display.drawLine(0, 12, SCREEN_WIDTH, 12, SSD1306_WHITE);
+
+    // Display checking message
+    display.setCursor(0, 16);
+    display.print("Checking ");
+    display.println(sensorName);
+
+    // Draw blinking dots to indicate activity
+    int dots = (millis() / 500) % 4; // 0-3 dots blinking
+    display.setCursor(0, 28);
+    for (int i = 0; i < dots; i++)
+    {
+        display.print(". ");
+    }
+
+    // Draw a small animation in the center
+    int frame = (millis() / 300) % 3;
+    switch (frame)
+    {
+    case 0:
+        display.fillCircle(64, 40, 6, SSD1306_WHITE);
+        break;
+    case 1:
+        display.drawCircle(64, 40, 8, SSD1306_WHITE);
+        break;
+    case 2:
+        display.drawCircle(64, 40, 10, SSD1306_WHITE);
+        break;
+    }
+
+    display.display();
+}

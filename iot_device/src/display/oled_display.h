@@ -59,6 +59,12 @@ void displaySplashScreen(uint16_t displayTime = 2000);
 // Function to clear the display
 void clearDisplay();
 
+// Function to display initialization progress
+void displayInitStatus(const String &message, int progress = -1);
+
+// Function to display sensor check message
+void displaySensorCheck(const String &sensorName);
+
 // Include wildfire detection for threshold checks
 #include "../detection/wildfire_detection.h"
 

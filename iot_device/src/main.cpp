@@ -27,7 +27,8 @@ const int IR_GREEN_PIN = 26; // GPIO26 for RGB green
 const int IR_BLUE_PIN = 27;  // GPIO27 for RGB blue
 
 // RGB LED pins for smoke sensor
-const int SMOKE_RED_PIN = 35;   // GPIO35 for RGB red
+// NOTE: GPIO35 is input-only and can't be used for output. Changed to GPIO15
+const int SMOKE_RED_PIN = 15;   // Changed from 35 to 15 - GPIO15 for RGB red
 const int SMOKE_GREEN_PIN = 32; // GPIO32 for RGB green
 const int SMOKE_BLUE_PIN = 33;  // GPIO33 for RGB blue
 
@@ -80,6 +81,38 @@ const long displayInterval = 1000; // Update display every 1 seconds
 unsigned long lastWildfireAlertTime = 0;
 const long wildfireAlertInterval = 60000; // Send alert every 60 seconds when wildfire detected
 
+void showSensorInitializationSequence(int redPin, int greenPin, int bluePin, const String &sensorName)
+{
+  // Display sensor check on OLED
+  displaySensorCheck(sensorName);
+
+  // Turn on blue LED and wait
+  digitalWrite(redPin, LOW);
+  digitalWrite(greenPin, LOW);
+  digitalWrite(bluePin, HIGH);
+  delay(300);
+
+  // Update display while blinking LED
+  displaySensorCheck(sensorName);
+
+  // Turn off LED and wait
+  digitalWrite(bluePin, LOW);
+  delay(200);
+
+  // Update display again
+  displaySensorCheck(sensorName);
+
+  // Turn on blue LED and wait
+  digitalWrite(bluePin, HIGH);
+  delay(300);
+
+  // Update display
+  displaySensorCheck(sensorName);
+
+  // Turn off LED
+  digitalWrite(bluePin, LOW);
+}
+
 void setup()
 {
   // Initialize serial communication
@@ -90,7 +123,21 @@ void setup()
   Wire.begin(21, 22); // SDA on GPIO 21, SCL on GPIO 22
   Serial.println("I2C initialized with SDA=21, SCL=22");
 
+  // Initialize OLED display first so we can show progress messages
+  Serial.println("Initializing OLED display...");
+  if (initDisplay())
+  {
+    Serial.println("OLED display initialized successfully");
+    displaySplashScreen(2000); // Show splash screen for 2 seconds
+    displayInitStatus("Display ready", 10);
+  }
+  else
+  {
+    Serial.println("Failed to initialize OLED display");
+  }
+
   // Initialize RGB LED for temperature/humidity sensor
+  displayInitStatus("Init RGB LEDs", 20);
   initRgbLed(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN);
 
   // Initialize RGB LED for infrared temperature sensor
@@ -100,52 +147,52 @@ void setup()
   initRgbLed(SMOKE_RED_PIN, SMOKE_GREEN_PIN, SMOKE_BLUE_PIN);
 
   // Show initialization sequence for all RGB LEDs - blue blinking
-  showSensorInitializationSequence(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN);
-  showSensorInitializationSequence(IR_RED_PIN, IR_GREEN_PIN, IR_BLUE_PIN);
-  showSensorInitializationSequence(SMOKE_RED_PIN, SMOKE_GREEN_PIN, SMOKE_BLUE_PIN);
+  displayInitStatus("Testing sensors...", 30);
+  showSensorInitializationSequence(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN, "Temp/Hum sensor");
+  showSensorInitializationSequence(IR_RED_PIN, IR_GREEN_PIN, IR_BLUE_PIN, "IR Temp sensor");
+  showSensorInitializationSequence(SMOKE_RED_PIN, SMOKE_GREEN_PIN, SMOKE_BLUE_PIN, "Smoke sensor");
 
-  // Initialize single color LEDs for other indicators (just wildfire alert now)
+  // Initialize single color LEDs for other indicators
+  displayInitStatus("Init status LEDs", 40);
   initLed(WILDFIRE_ALERT_LED_PIN);
+  initLed(WIFI_LED_PIN);
 
   Serial.println("Sensor status LEDs initialized");
 
-  // Initialize OLED display
-  if (initDisplay())
-  {
-    Serial.println("OLED display initialized successfully");
-    displaySplashScreen(3000); // Show splash screen for 3 seconds
-  }
-  else
-  {
-    Serial.println("Failed to initialize OLED display");
-  }
-
   // Initialize temperature & humidity sensors (DHT11)
+  displayInitStatus("Init DHT11 sensor", 50);
   Serial.println("Initializing DHT11 sensor...");
   initTemperatureSensor(DHT_PIN);
   initHumiditySensor(DHT_PIN);
 
   // Initialize smoke sensor (MQ2)
+  displayInitStatus("Init MQ2 sensor", 60);
   Serial.println("Initializing MQ2 smoke sensor...");
   initSmokeSensor(SMOKE_PIN);
 
   // Initialize infrared temperature sensor (MLX90614)
+  displayInitStatus("Init IR sensor", 70);
   Serial.println("Initializing MLX90614 infrared sensor...");
   initInfraredSensor();
 
   // Initialize wildfire detection with default thresholds
+  displayInitStatus("Init detection logic", 80);
   initWildfireDetection();
 
-  // Initialize WiFi with external LED on GPIO 5
+  // Initialize WiFi with external LED indicator
+  displayInitStatus("Connecting WiFi...", 85);
   initWiFi(ssid, password, WIFI_LED_PIN);
 
   // Initialize time synchronization
+  displayInitStatus("Syncing time...", 90);
   initTimeSync();
 
   // Initialize MQTT
+  displayInitStatus("Connecting MQTT...", 95);
   initMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_password);
 
   // Wait for the sensor to stabilize
+  displayInitStatus("System ready!", 100);
   delay(2000);
 
   // Show a welcome message on the display
