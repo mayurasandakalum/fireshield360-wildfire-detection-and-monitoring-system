@@ -17,12 +17,22 @@ const int DHT_PIN = 4;       // GPIO4 for DHT11 sensor
 const int SMOKE_PIN = 34;    // GPIO34 for MQ2 sensor
 const int WIFI_LED_PIN = 27; // GPIO27 for WiFi status LED
 
+// RGB LED pins for temperature/humidity sensor
+const int TEMP_HUM_RED_PIN = 13;   // GPIO13 for RGB red
+const int TEMP_HUM_GREEN_PIN = 12; // GPIO12 for RGB green
+const int TEMP_HUM_BLUE_PIN = 14;  // GPIO14 for RGB blue
+
+// Temperature and humidity thresholds for RGB LED status
+const float TEMP_HIGH_THRESHOLD = 35.0; // Temperature > 35°C: High warning (Red)
+const float TEMP_LOW_THRESHOLD = 15.0;  // Temperature < 15°C: Low warning (Blue)
+const float HUM_HIGH_THRESHOLD = 70.0;  // Humidity > 70%: High warning (Red)
+const float HUM_LOW_THRESHOLD = 30.0;   // Humidity < 30%: Low warning (Blue)
+
 // Sensor status LED pins
-const int TEMP_HUM_LED_PIN = 12; // GPIO12 for temperature/humidity sensor status
-const int SMOKE_LED_PIN = 13;    // GPIO13 for smoke sensor status
+const int SMOKE_LED_PIN = 25; // GPIO25 for smoke sensor status
 
 // Add LED pin for wildfire alert
-const int WILDFIRE_ALERT_LED_PIN = 14; // GPIO14 for wildfire alert LED
+const int WILDFIRE_ALERT_LED_PIN = 26; // GPIO26 for wildfire alert LED
 
 // Variables to store sensor values
 float temperature = 0.0;
@@ -69,11 +79,16 @@ void setup()
   Wire.begin(21, 22); // SDA on GPIO 21, SCL on GPIO 22
   Serial.println("I2C initialized with SDA=21, SCL=22");
 
+  // Initialize RGB LED for temperature/humidity sensor
+  initRgbLed(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN);
+
+  // Show initialization sequence - blue blinking
+  showSensorInitializationSequence(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN);
+
   // Initialize sensor status LEDs using the LED module
-  initLed(TEMP_HUM_LED_PIN);
   initLed(SMOKE_LED_PIN);
-  initLed(WILDFIRE_ALERT_LED_PIN); // Add wildfire alert LED
-  Serial.println("Sensor status LEDs initialized on pins 12, 13 and 14");
+  initLed(WILDFIRE_ALERT_LED_PIN);
+  Serial.println("Sensor status LEDs initialized");
 
   // Initialize OLED display
   if (initDisplay())
@@ -139,16 +154,28 @@ void loop()
   smokeValue = readSmokeValue();
   irTemperature = readObjectTemperature();
 
-  // Update sensor status LEDs using the LED module
-  if (isTemperatureReadingValid() && isHumidityReadingValid())
+  // Update temperature/humidity sensor status with RGB LED
+  bool tempHumValid = isTemperatureReadingValid() && isHumidityReadingValid();
+  bool sensorStatus = updateSensorStatusLed(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN, tempHumValid);
+
+  // Debug info for sensor errors
+  if (!sensorStatus)
   {
-    turnOnLed(TEMP_HUM_LED_PIN);
-  }
-  else
-  {
-    turnOffLed(TEMP_HUM_LED_PIN);
+    if (!isTemperatureReadingValid() && !isHumidityReadingValid())
+    {
+      Serial.println("DHT11 ERROR: Both temperature and humidity sensors disconnected or failed");
+    }
+    else if (!isTemperatureReadingValid())
+    {
+      Serial.println("DHT11 ERROR: Temperature sensor disconnected or failed");
+    }
+    else
+    {
+      Serial.println("DHT11 ERROR: Humidity sensor disconnected or failed");
+    }
   }
 
+  // Update smoke sensor status LED
   if (isSmokeReadingValid())
   {
     turnOnLed(SMOKE_LED_PIN);
