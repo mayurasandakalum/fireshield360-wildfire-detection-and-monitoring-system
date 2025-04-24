@@ -111,9 +111,14 @@ def verify_potential_wildfire(payload):
         # Start capturing and processing images for 1 minute
         end_time = time.time() + 60  # 1 minute
         image_count = 0
-        interval_seconds = 5  # Capture every 5 seconds
 
         print_info(f"Starting 1-minute image capture and analysis sequence...")
+
+        # Preload the model
+        if not fire_detector.load_model():
+            print_warning("Failed to load YOLO model")
+            publish_verified_status(payload, payload.get("potential_wildfire", False))
+            return
 
         while time.time() < end_time:
             try:
@@ -126,70 +131,66 @@ def verify_potential_wildfire(payload):
                     print_warning(
                         f"Failed to capture image {image_count+1}, skipping..."
                     )
-                    time.sleep(interval_seconds)
+                    # Skip this iteration but continue loop
                     continue
 
                 # Process with YOLO detection
-                if fire_detector.load_model():
-                    try:
-                        print_info(f"Processing image {image_count+1} with YOLO...")
-                        result_img, detection_text, fire_detected, detection_info = (
-                            fire_detector.detect(image_data)
-                        )
+                try:
+                    print_info(f"Processing image {image_count+1} with YOLO...")
+                    result_img, detection_text, fire_detected, detection_info = (
+                        fire_detector.detect(image_data)
+                    )
 
-                        total_images += 1
-                        if fire_detected:
-                            fire_detected_count += 1
-                            print_alert(
-                                f"FIRE/SMOKE DETECTED in image {image_count+1}!"
+                    total_images += 1
+                    if fire_detected:
+                        fire_detected_count += 1
+                        print_alert(f"FIRE/SMOKE DETECTED in image {image_count+1}!")
+
+                    # Save the image with detection results
+                    detection_result = (
+                        result_img,
+                        detection_text,
+                        fire_detected,
+                        detection_info,
+                    )
+                    original_path, detection_path, metadata_path = save_image(
+                        image_data,
+                        alert_folder,
+                        image_count,
+                        payload,
+                        detection_result,
+                    )
+
+                    # Save detection image if available
+                    if detection_result and detection_result[0] is not None:
+                        try:
+                            fire_detector.save_detection_image(
+                                detection_result[0], detection_path
                             )
+                            print_success(f"Detection image saved to {detection_path}")
+                        except Exception as save_error:
+                            print_error(f"Error saving detection image: {save_error}")
 
-                        # Save the image with detection results
-                        detection_result = (
-                            result_img,
-                            detection_text,
-                            fire_detected,
-                            detection_info,
-                        )
-                        original_path, detection_path, metadata_path = save_image(
-                            image_data,
-                            alert_folder,
-                            image_count,
-                            payload,
-                            detection_result,
-                        )
-
-                        # Save detection image if available
-                        if detection_result and detection_result[0] is not None:
-                            try:
-                                fire_detector.save_detection_image(
-                                    detection_result[0], detection_path
-                                )
-                                print_success(
-                                    f"Detection image saved to {detection_path}"
-                                )
-                            except Exception as save_error:
-                                print_error(
-                                    f"Error saving detection image: {save_error}"
-                                )
-
-                    except Exception as ai_error:
-                        print_error(
-                            f"AI detection failed for image {image_count+1}: {ai_error}"
-                        )
-                else:
-                    print_warning(
-                        f"Failed to load YOLO model for image {image_count+1}"
+                except Exception as ai_error:
+                    print_error(
+                        f"AI detection failed for image {image_count+1}: {ai_error}"
                     )
 
                 image_count += 1
 
-                # Sleep for the interval time, but don't exceed the end time
+                # Add a 5-second wait after capturing and processing each image
                 remaining_time = end_time - time.time()
                 if remaining_time <= 0:
                     break
-                sleep_time = min(interval_seconds, remaining_time)
-                time.sleep(sleep_time)
+
+                wait_time = min(5, remaining_time)  # Wait 5 seconds or until end time
+                if wait_time > 0:
+                    print_info(f"Waiting 5 seconds before next capture...")
+                    time.sleep(wait_time)
+
+                # Check if we've run out of time
+                if time.time() >= end_time:
+                    break
 
             except Exception as e:
                 print_error(f"Error processing image {image_count+1}: {e}")
@@ -348,7 +349,7 @@ def capture_images_for_duration(
 
                     image_count += 1
                 else:
-                    print_warning("Failed to capture image, skipping this interval")
+                    print_warning("Failed to capture image, skipping this iteration")
 
             except Exception as e:
                 print_error(f"Error in capture loop: {e}")
@@ -362,12 +363,19 @@ def capture_images_for_duration(
             except:
                 pass
 
-            # Sleep for the interval time, but don't exceed the end time
+            # Add a 5-second wait after capturing and processing each image
             remaining_time = end_time - time.time()
             if remaining_time <= 0:
                 break
-            sleep_time = min(interval_seconds, remaining_time)
-            time.sleep(sleep_time)
+
+            wait_time = min(5, remaining_time)  # Wait 5 seconds or until end time
+            if wait_time > 0:
+                print_info(f"Waiting 5 seconds before next capture...")
+                time.sleep(wait_time)
+
+            # Check if we've run out of time
+            if time.time() >= end_time:
+                break
 
         # Show completion banner
         completion_message = (

@@ -178,6 +178,21 @@ static esp_err_t capture_handler(httpd_req_t *req)
   int64_t fr_start = esp_timer_get_time();
 #endif
 
+  // Get the camera sensor
+  sensor_t *s = esp_camera_sensor_get();
+  if (!s)
+  {
+    log_e("Failed to get camera sensor");
+    httpd_resp_send_500(req);
+    return ESP_FAIL;
+  }
+
+  // Store current framesize
+  framesize_t original_framesize = s->status.framesize;
+
+  // Set to UXGA for high resolution capture
+  s->set_framesize(s, FRAMESIZE_UXGA);
+
 #if CONFIG_LED_ILLUMINATOR_ENABLED
   enable_led(true);
   vTaskDelay(150 / portTICK_PERIOD_MS); // The LED needs to be turned on ~150ms before the call to esp_camera_fb_get()
@@ -186,6 +201,9 @@ static esp_err_t capture_handler(httpd_req_t *req)
 #else
   fb = esp_camera_fb_get();
 #endif
+
+  // Restore original framesize
+  s->set_framesize(s, original_framesize);
 
   if (!fb)
   {
