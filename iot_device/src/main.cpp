@@ -62,8 +62,7 @@ const char *password = "camtasia";
 // MQTT Broker details
 const char *mqtt_server = "7ce36aef28e949f4b384e4808389cffc.s1.eu.hivemq.cloud";
 const int mqtt_port = 8883;
-const char *mqtt_topic = "esp32_01/sensors/data";
-const char *mqtt_wildfire_topic = "esp32_01/wildfire/alert"; // Add new topic for wildfire alerts
+const char *mqtt_topic = "esp32_01/sensors/data"; // Removed dedicated wildfire topic
 
 // MQTT credentials
 const char *mqtt_username = "hivemq.webclient.1745152369573";
@@ -291,8 +290,9 @@ void loop()
   // Process MQTT messages
   processMQTTMessages();
 
-  // Check for wildfire conditions - now includes IR temperature
-  wildfireDetected = isWildfireDetected(temperature, humidity, smokeValue, irTemperature);
+  // Check for wildfire conditions - now requires at least 2 sensors exceeding thresholds
+  int thresholdsExceeded = getNumberOfThresholdsExceeded(temperature, humidity, smokeValue, irTemperature);
+  wildfireDetected = (thresholdsExceeded >= 2); // Alert when 2 or more thresholds are exceeded
 
   // Update wildfire alert LED
   if (wildfireDetected)
@@ -313,12 +313,14 @@ void loop()
     {
       lastWildfireAlertTime = currentTime;
 
-      // Use the dedicated function from mqtt.h to publish the wildfire alert
+      // Use the main topic instead of the dedicated wildfire topic
       if (publishWildfireAlert(temperature, humidity, smokeValue, irTemperature,
-                               getNumberOfThresholdsExceeded(temperature, humidity, smokeValue, irTemperature),
-                               mqtt_wildfire_topic))
+                               thresholdsExceeded,
+                               mqtt_topic)) // Using main topic here
       {
         Serial.println("Wildfire alert published to MQTT");
+        Serial.print("Thresholds exceeded: ");
+        Serial.println(thresholdsExceeded);
       }
       else
       {
@@ -337,14 +339,16 @@ void loop()
   if (currentTime - lastDisplayTime >= displayInterval)
   {
     lastDisplayTime = currentTime;
-    if (isTemperatureReadingValid() && isHumidityReadingValid() && isSmokeReadingValid() && isInfraredReadingValid())
-    {
-      displaySensorData(temperature, humidity, smokeValue, irTemperature, wildfireDetected);
-    }
-    else
-    {
-      textDisplay("Sensor Error!");
-    }
+
+    // Always call displaySensorData, passing validity status for each sensor
+    bool tempValid = isTemperatureReadingValid();
+    bool humidityValid = isHumidityReadingValid();
+    bool smokeValid = isSmokeReadingValid();
+    bool irValid = isInfraredReadingValid();
+
+    displaySensorData(temperature, humidity, smokeValue, irTemperature,
+                      wildfireDetected,
+                      tempValid, humidityValid, smokeValid, irValid);
   }
 
   // Check if readings are valid

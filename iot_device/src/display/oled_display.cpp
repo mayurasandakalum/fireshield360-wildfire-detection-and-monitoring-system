@@ -624,6 +624,199 @@ void displaySensorData(float temperature, float humidity, int smokeValue, float 
     display.display();
 }
 
+// Updated to handle individual sensor errors
+void displaySensorData(float temperature, float humidity, int smokeValue, float irTemperature,
+                       bool wildfireDetected,
+                       bool tempValid,
+                       bool humidityValid,
+                       bool smokeValid,
+                       bool irValid)
+{
+    display.clearDisplay();
+
+    // Define the display bands
+    const int YELLOW_BAND_HEIGHT = 16; // 25% of 64 pixels (2 rows of text)
+
+    // Draw the yellow band on top (for title area)
+    display.fillRect(0, 0, SCREEN_WIDTH, YELLOW_BAND_HEIGHT, SSD1306_WHITE);
+
+    // Set text properties for title in yellow area (black text on yellow background)
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_BLACK);
+
+    if (wildfireDetected)
+    {
+        // Animate the warning text in the yellow band
+        int animPhase = (millis() / 200) % 4; // 4 animation phases, changing every 200ms
+
+        switch (animPhase)
+        {
+        case 0:
+            display.setCursor(4, 4);
+            display.print("! WILDFIRE ALERT !");
+            break;
+        case 1:
+            display.setCursor(4, 4);
+            display.print(" WILDFIRE ALERT  ");
+            break;
+        case 2:
+            display.setCursor(4, 4);
+            display.print("  WILDFIRE ALERT ");
+            break;
+        case 3:
+            display.setCursor(4, 4);
+            display.print(" ! DANGER ! ");
+            break;
+        }
+
+        // Draw small warning triangle on the right side
+        display.drawBitmap(110, 0, warning_icon, 16, 16, SSD1306_BLACK);
+    }
+    else
+    {
+        // Count errors to show in title
+        int errorCount = 0;
+        if (!tempValid)
+            errorCount++;
+        if (!humidityValid)
+            errorCount++;
+        if (!smokeValid)
+            errorCount++;
+        if (!irValid)
+            errorCount++;
+
+        if (errorCount > 0)
+        {
+            display.setCursor(0, 4);
+            display.print(" SENSOR ERRORS: ");
+            display.print(errorCount);
+        }
+        else
+        {
+            display.setCursor(0, 4);
+            display.println(" Sensor Readings ");
+        }
+    }
+
+    // Switch to white text on black for the rest of display
+    display.setTextColor(SSD1306_WHITE);
+
+    // Start a bit closer to the yellow band to save space
+    int yPos = YELLOW_BAND_HEIGHT + 1;
+
+    // Display temperature with threshold indicator or error
+    display.setCursor(0, yPos);
+    display.print("Temp: ");
+    if (tempValid)
+    {
+        display.print(temperature);
+        display.print(" C");
+        if (isTemperatureExceedingThreshold(temperature))
+        {
+            display.print(" !");
+        }
+    }
+    else
+    {
+        display.print("ERROR");
+    }
+    yPos += 9;
+
+    // Display humidity with threshold indicator or error
+    display.setCursor(0, yPos);
+    display.print("Humidity: ");
+    if (humidityValid)
+    {
+        display.print(humidity);
+        display.print(" %");
+        if (isHumidityBelowThreshold(humidity))
+        {
+            display.print(" !");
+        }
+    }
+    else
+    {
+        display.print("ERROR");
+    }
+    yPos += 9;
+
+    // Display smoke value with threshold indicator or error
+    display.setCursor(0, yPos);
+    display.print("Smoke: ");
+    if (smokeValid)
+    {
+        display.print(smokeValue);
+        if (isSmokeExceedingThreshold(smokeValue))
+        {
+            display.print(" !");
+        }
+    }
+    else
+    {
+        display.print("ERROR");
+    }
+    yPos += 9;
+
+    // Display IR temperature with threshold indicator or error
+    display.setCursor(0, yPos);
+    display.print("IR Temp: ");
+    if (irValid)
+    {
+        display.print(irTemperature);
+        display.print(" C");
+        if (isIRTemperatureExceedingThreshold(irTemperature))
+        {
+            display.print(" !");
+        }
+    }
+    else
+    {
+        display.print("ERROR");
+    }
+    yPos += 9;
+
+    // Only show thresholds exceeded if sensors are valid
+    int validSensorCount = 0;
+    int thresholdsExceeded = 0;
+
+    if (tempValid)
+    {
+        validSensorCount++;
+        if (isTemperatureExceedingThreshold(temperature))
+            thresholdsExceeded++;
+    }
+    if (humidityValid)
+    {
+        validSensorCount++;
+        if (isHumidityBelowThreshold(humidity))
+            thresholdsExceeded++;
+    }
+    if (smokeValid)
+    {
+        validSensorCount++;
+        if (isSmokeExceedingThreshold(smokeValue))
+            thresholdsExceeded++;
+    }
+    if (irValid)
+    {
+        validSensorCount++;
+        if (isIRTemperatureExceedingThreshold(irTemperature))
+            thresholdsExceeded++;
+    }
+
+    if (validSensorCount > 0)
+    {
+        display.setCursor(0, yPos);
+        display.print("Alerts: ");
+        display.print(thresholdsExceeded);
+        display.print("/");
+        display.print(validSensorCount);
+    }
+
+    // Update the display
+    display.display();
+}
+
 void displayInitStatus(const String &message, int progress)
 {
     display.clearDisplay();

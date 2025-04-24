@@ -73,7 +73,7 @@ bool publishSensorData(float temperature, float humidity, int smoke, bool wildfi
     doc["humidity"] = humidity;
     doc["smoke"] = smoke;
     // Removed smoke_detected field as requested
-    doc["wildfire_detected"] = wildfireDetected; // Add wildfire detection status
+    doc["potential_wildfire"] = wildfireDetected; // Changed from wildfire_detected to potential_wildfire
 
     // Add properly formatted timestamp
     char timeBuffer[25];
@@ -125,8 +125,8 @@ bool publishSensorData(float temperature, float humidity, int smokeValue, float 
     doc["temperature"] = temperature;
     doc["humidity"] = humidity;
     doc["smoke"] = smokeValue;
-    doc["ir_temperature"] = irTemperature; // Add IR temperature
-    doc["wildfire_detected"] = wildfireDetected;
+    doc["ir_temperature"] = irTemperature;        // Add IR temperature
+    doc["potential_wildfire"] = wildfireDetected; // Changed from wildfire_detected to potential_wildfire
 
     // Add properly formatted timestamp
     char timeBuffer[25];
@@ -209,7 +209,7 @@ bool publishWildfireAlert(float temperature, float humidity, int smoke, int thre
     // Create a JSON document for the alert
     JsonDocument alertDoc;
     alertDoc["device_id"] = "esp32_01";
-    alertDoc["wildfire_detected"] = true;
+    alertDoc["potential_wildfire"] = true; // Changed from wildfire_detected to potential_wildfire
     alertDoc["temperature"] = temperature;
     alertDoc["humidity"] = humidity;
     alertDoc["smoke"] = smoke;
@@ -252,7 +252,7 @@ bool publishWildfireAlert(float temperature, float humidity, int smokeValue, flo
     // Create a JSON document for the alert
     JsonDocument alertDoc;
     alertDoc["device_id"] = "esp32_01";
-    alertDoc["wildfire_detected"] = true;
+    alertDoc["potential_wildfire"] = true; // Changed from wildfire_detected to potential_wildfire
     alertDoc["temperature"] = temperature;
     alertDoc["humidity"] = humidity;
     alertDoc["smoke"] = smokeValue;

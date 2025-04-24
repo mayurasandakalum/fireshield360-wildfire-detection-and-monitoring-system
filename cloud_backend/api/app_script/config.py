@@ -6,6 +6,8 @@ MQTT_PORT = 8883
 MQTT_USER = "hivemq.webclient.1745152369573"
 MQTT_PASSWORD = "f%h3.X!9WGm0HtoJ1sO&"
 MQTT_TOPIC_ALERT = "esp32_01/wildfire/alert"
+MQTT_TOPIC_SENSOR = "esp32_01/sensors/data"
+MQTT_TOPIC_VERIFIED = "esp32_01/verified/status"
 
 # ESP32 CAM settings
 CAMERA_IP = "192.168.8.194"

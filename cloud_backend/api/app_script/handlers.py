@@ -4,6 +4,7 @@ import time
 import os
 import traceback
 from datetime import datetime
+import paho.mqtt.publish as mqtt_publish
 
 from camera.capture import capture_image, capture_image_alternative
 from storage.image_storage import create_alert_folder, save_image
@@ -15,6 +16,13 @@ from config import (
     AI_CONF_THRESHOLD,
     AI_IOU_THRESHOLD,
     FRAMESIZE_UXGA,
+    MQTT_BROKER,
+    MQTT_PORT,
+    MQTT_USER,
+    MQTT_PASSWORD,
+    MQTT_TOPIC_ALERT,
+    MQTT_TOPIC_SENSOR,
+    MQTT_TOPIC_VERIFIED,
 )
 from ai_detection.fire_detector import FireDetector
 from utils.terminal import (
@@ -40,6 +48,191 @@ fire_detector = FireDetector(
 # Track active capture sessions
 active_captures = 0
 capture_lock = threading.Lock()
+
+
+# Function to publish verified wildfire status
+def publish_verified_status(original_data, wildfire_detected):
+    """Publish the verified wildfire status to the MQTT verified topic"""
+    try:
+        # Create a deep copy of the original data and add verified status
+        verified_data = original_data.copy() if original_data else {}
+        verified_data["wildfire_detected"] = wildfire_detected
+
+        # Convert to JSON
+        payload = json.dumps(verified_data)
+
+        # Setup auth for MQTT
+        auth = {"username": MQTT_USER, "password": MQTT_PASSWORD}
+
+        # Setup TLS parameters correctly
+        tls = {"tls_version": 2, "insecure": True}  # For testing only
+
+        # Publish to the verified topic
+        mqtt_publish.single(
+            MQTT_TOPIC_VERIFIED,
+            payload=payload,
+            hostname=MQTT_BROKER,
+            port=MQTT_PORT,
+            auth=auth,
+            tls=tls,
+        )
+
+        print_success(
+            f"Published verified status (wildfire_detected={wildfire_detected}) to {MQTT_TOPIC_VERIFIED}"
+        )
+        return True
+    except Exception as e:
+        print_error(f"Error publishing verified status: {e}")
+        traceback.print_exc()
+        return False
+
+
+# Function to verify potential wildfire with camera and AI
+def verify_potential_wildfire(payload):
+    """Verify if there's an actual wildfire by capturing multiple images over a minute and using AI detection"""
+    try:
+        print_info("Verifying potential wildfire with multiple images over 1 minute...")
+
+        # Check if model file exists
+        if not os.path.exists(AI_MODEL_PATH):
+            print_warning(f"YOLO model not found at {AI_MODEL_PATH}")
+            # If no model, assume sensor data is correct and forward without verification
+            publish_verified_status(payload, payload.get("potential_wildfire", False))
+            return
+
+        # Create a folder for this verification
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        alert_folder = create_alert_folder(timestamp)
+
+        # Initialize detection results tracking
+        total_images = 0
+        fire_detected_count = 0
+
+        # Start capturing and processing images for 1 minute
+        end_time = time.time() + 60  # 1 minute
+        image_count = 0
+        interval_seconds = 5  # Capture every 5 seconds
+
+        print_info(f"Starting 1-minute image capture and analysis sequence...")
+
+        while time.time() < end_time:
+            try:
+                print_info(f"Capturing image {image_count+1}...")
+
+                # Capture image
+                image_data = capture_image_alternative(framesize=FRAMESIZE_UXGA)
+
+                if not image_data:
+                    print_warning(
+                        f"Failed to capture image {image_count+1}, skipping..."
+                    )
+                    time.sleep(interval_seconds)
+                    continue
+
+                # Process with YOLO detection
+                if fire_detector.load_model():
+                    try:
+                        print_info(f"Processing image {image_count+1} with YOLO...")
+                        result_img, detection_text, fire_detected, detection_info = (
+                            fire_detector.detect(image_data)
+                        )
+
+                        total_images += 1
+                        if fire_detected:
+                            fire_detected_count += 1
+                            print_alert(
+                                f"FIRE/SMOKE DETECTED in image {image_count+1}!"
+                            )
+
+                        # Save the image with detection results
+                        detection_result = (
+                            result_img,
+                            detection_text,
+                            fire_detected,
+                            detection_info,
+                        )
+                        original_path, detection_path, metadata_path = save_image(
+                            image_data,
+                            alert_folder,
+                            image_count,
+                            payload,
+                            detection_result,
+                        )
+
+                        # Save detection image if available
+                        if detection_result and detection_result[0] is not None:
+                            try:
+                                fire_detector.save_detection_image(
+                                    detection_result[0], detection_path
+                                )
+                                print_success(
+                                    f"Detection image saved to {detection_path}"
+                                )
+                            except Exception as save_error:
+                                print_error(
+                                    f"Error saving detection image: {save_error}"
+                                )
+
+                    except Exception as ai_error:
+                        print_error(
+                            f"AI detection failed for image {image_count+1}: {ai_error}"
+                        )
+                else:
+                    print_warning(
+                        f"Failed to load YOLO model for image {image_count+1}"
+                    )
+
+                image_count += 1
+
+                # Sleep for the interval time, but don't exceed the end time
+                remaining_time = end_time - time.time()
+                if remaining_time <= 0:
+                    break
+                sleep_time = min(interval_seconds, remaining_time)
+                time.sleep(sleep_time)
+
+            except Exception as e:
+                print_error(f"Error processing image {image_count+1}: {e}")
+                traceback.print_exc()
+
+        # Make final determination based on all images
+        final_fire_detected = False
+        detection_ratio = 0
+
+        if total_images > 0:
+            detection_ratio = fire_detected_count / total_images
+            # If at least 20% of images detected fire, consider it a verified wildfire
+            final_fire_detected = detection_ratio >= 0.2
+
+            print_separator()
+            print_info(f"Verification complete: Analyzed {total_images} images")
+            print_info(
+                f"Fire detected in {fire_detected_count} images ({detection_ratio*100:.1f}%)"
+            )
+
+            if final_fire_detected:
+                print_alert("WILDFIRE CONFIRMED by image analysis!")
+            else:
+                print_info("No significant wildfire evidence found in images")
+        else:
+            print_warning("No valid images were captured for verification")
+            # Default to sensor data if no images were processed
+            final_fire_detected = payload.get("potential_wildfire", False)
+
+        # Include additional data in the verified status
+        payload_with_stats = payload.copy() if payload else {}
+        payload_with_stats["verification_images"] = total_images
+        payload_with_stats["fire_detected_images"] = fire_detected_count
+        payload_with_stats["detection_ratio"] = detection_ratio
+
+        # Publish the verified status
+        publish_verified_status(payload_with_stats, final_fire_detected)
+
+    except Exception as e:
+        print_error(f"Error verifying potential wildfire: {e}")
+        traceback.print_exc()
+        # In case of error, forward the original potential_wildfire value
+        publish_verified_status(payload, payload.get("potential_wildfire", False))
 
 
 def capture_images_for_duration(
@@ -199,9 +392,30 @@ def on_message(client, userdata, msg):
         # Parse the MQTT message
         payload = json.loads(msg.payload.decode())
 
-        if msg.topic == "esp32_01/wildfire/alert" and payload.get(
-            "wildfire_detected", False
-        ):
+        # Process messages from the sensor data topic
+        if msg.topic == MQTT_TOPIC_SENSOR:
+            print_info(f"Sensor data received: {payload}")
+
+            # Check if potential_wildfire flag is true
+            if payload.get("potential_wildfire", False):
+                print_alert("Potential wildfire detected by sensors!")
+                print_separator()
+
+                # Verify with camera and AI in a separate thread
+                verify_thread = threading.Thread(
+                    target=verify_potential_wildfire,
+                    args=(payload,),
+                    name=f"Verify-{datetime.now().strftime('%H%M%S')}",
+                )
+                verify_thread.start()
+                print_info("Started wildfire verification process")
+            else:
+                # No potential wildfire, just forward the data
+                print_info("No potential wildfire detected, forwarding data")
+                publish_verified_status(payload, False)
+
+        # Process legacy wildfire alert messages
+        elif msg.topic == MQTT_TOPIC_ALERT and payload.get("potential_wildfire", False):
             print_alert(f"Wildfire alert received: {payload}")
             print_separator()
 
