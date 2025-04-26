@@ -103,7 +103,7 @@ bool isSmokeReadingValid()
     return smokeReadingValid;
 }
 
-int getSmokeThreshold()
+int getLocalSmokeThreshold()
 {
     return smokeThreshold;
 }
