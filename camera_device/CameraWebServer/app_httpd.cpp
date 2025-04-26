@@ -191,7 +191,7 @@ static esp_err_t capture_handler(httpd_req_t *req)
   framesize_t original_framesize = s->status.framesize;
 
   // Set to UXGA for high resolution capture
-  s->set_framesize(s, FRAMESIZE_UXGA);
+  s->set_framesize(s, FRAMESIZE_VGA);
 
 #if CONFIG_LED_ILLUMINATOR_ENABLED
   enable_led(true);
