@@ -179,9 +179,9 @@ void setup()
 
   // Show initialization sequence for all RGB LEDs - blue blinking
   displayInitStatus("Testing sensors...", 30);
+  showSensorInitializationSequence(SMOKE_RED_PIN, SMOKE_GREEN_PIN, SMOKE_BLUE_PIN, "Smoke sensor");
   showSensorInitializationSequence(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN, "Temp/Hum sensor");
   showSensorInitializationSequence(IR_RED_PIN, IR_GREEN_PIN, IR_BLUE_PIN, "IR Temp sensor");
-  showSensorInitializationSequence(SMOKE_RED_PIN, SMOKE_GREEN_PIN, SMOKE_BLUE_PIN, "Smoke sensor");
 
   // At this point all sensor LEDs are still blue (kept on from showSensorInitializationSequence)
 
@@ -192,16 +192,16 @@ void setup()
 
   Serial.println("Sensor status LEDs initialized");
 
+  // Initialize smoke sensor (MQ2)
+  displayInitStatus("Init MQ2 sensor", 50);
+  Serial.println("Initializing MQ2 smoke sensor...");
+  initSmokeSensor(SMOKE_PIN);
+
   // Initialize temperature & humidity sensors (DHT11)
-  displayInitStatus("Init DHT11 sensor", 50);
+  displayInitStatus("Init DHT11 sensor", 60);
   Serial.println("Initializing DHT11 sensor...");
   initTemperatureSensor(DHT_PIN);
   initHumiditySensor(DHT_PIN);
-
-  // Initialize smoke sensor (MQ2)
-  displayInitStatus("Init MQ2 sensor", 60);
-  Serial.println("Initializing MQ2 smoke sensor...");
-  initSmokeSensor(SMOKE_PIN);
 
   // Initialize infrared temperature sensor (MLX90614)
   displayInitStatus("Init IR sensor", 70);
@@ -263,9 +263,9 @@ void reinitializeSystem()
 
   // Show initialization sequence for all RGB LEDs - blue blinking
   displayInitStatus("Testing sensors...", 30);
+  showSensorInitializationSequence(SMOKE_RED_PIN, SMOKE_GREEN_PIN, SMOKE_BLUE_PIN, "Smoke sensor");
   showSensorInitializationSequence(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN, "Temp/Hum sensor");
   showSensorInitializationSequence(IR_RED_PIN, IR_GREEN_PIN, IR_BLUE_PIN, "IR Temp sensor");
-  showSensorInitializationSequence(SMOKE_RED_PIN, SMOKE_GREEN_PIN, SMOKE_BLUE_PIN, "Smoke sensor");
 
   // Initialize single color LEDs for other indicators
   displayInitStatus("Init status LEDs", 40);
