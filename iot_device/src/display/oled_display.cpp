@@ -131,6 +131,41 @@ const unsigned char large_warning_icon[] PROGMEM = {
     0x1F, 0xFE, 0x0F, 0xFC, 0x0F, 0xFF, 0x1F, 0xF8, 0x07, 0xFF, 0xFF, 0xF0, 0x03, 0xFF, 0xFF, 0xE0,
     0x01, 0xFF, 0xFF, 0xC0, 0x00, 0xFF, 0xFF, 0x80, 0x00, 0x7F, 0xFF, 0x00, 0x00, 0x3F, 0xFE, 0x00};
 
+// Add a power icon bitmap (32x32 pixels)
+const unsigned char power_icon[] PROGMEM = {
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x03, 0xC0, 0x00,
+    0x00, 0x07, 0xE0, 0x00,
+    0x00, 0x0F, 0xF0, 0x00,
+    0x00, 0x1F, 0xF8, 0x00,
+    0x00, 0x1F, 0xF8, 0x00,
+    0x00, 0x3F, 0xFC, 0x00,
+    0x00, 0x7F, 0xFE, 0x00,
+    0x00, 0x7F, 0xFE, 0x00,
+    0x00, 0x7C, 0x3E, 0x00,
+    0x00, 0xF8, 0x1F, 0x00,
+    0x00, 0xF8, 0x1F, 0x00,
+    0x01, 0xF0, 0x0F, 0x80,
+    0x01, 0xF0, 0x0F, 0x80,
+    0x01, 0xF0, 0x0F, 0x80,
+    0x01, 0xF0, 0x0F, 0x80,
+    0x01, 0xF0, 0x0F, 0x80,
+    0x01, 0xF0, 0x0F, 0x80,
+    0x01, 0xF0, 0x0F, 0x80,
+    0x01, 0xF0, 0x0F, 0x80,
+    0x00, 0xF8, 0x1F, 0x00,
+    0x00, 0xF8, 0x1F, 0x00,
+    0x00, 0x7C, 0x3E, 0x00,
+    0x00, 0x7F, 0xFE, 0x00,
+    0x00, 0x7F, 0xFE, 0x00,
+    0x00, 0x3F, 0xFC, 0x00,
+    0x00, 0x1F, 0xF8, 0x00,
+    0x00, 0x1F, 0xF8, 0x00,
+    0x00, 0x0F, 0xF0, 0x00,
+    0x00, 0x07, 0xE0, 0x00,
+    0x00, 0x03, 0xC0, 0x00,
+    0x00, 0x00, 0x00, 0x00};
+
 bool initDisplay()
 {
     if (!display.begin(SSD1306_SWITCHCAPVCC))
@@ -900,26 +935,87 @@ void displaySensorCheck(const String &sensorName)
 
 void displayPowerOff()
 {
-    display.clearDisplay();
+    // First phase - Show power icon with full screen
+    for (int i = 0; i <= 5; i++)
+    {
+        display.clearDisplay();
 
-    // Draw title
+        // Draw title with reducing brightness
+        display.setTextSize(1);
+        display.setTextColor(SSD1306_WHITE);
+        display.setCursor(14, 10);
+        display.println("FireShield 360");
+
+        // Draw horizontal line
+        display.drawLine(0, 20, SCREEN_WIDTH, 20, SSD1306_WHITE);
+
+        // Show power icon in center of screen
+        display.drawBitmap(48, 24, power_icon, 32, 32, SSD1306_WHITE);
+
+        display.display();
+        delay(50);
+    }
+
+    // Second phase - Show powering off animation
+    for (int i = 0; i < 5; i++)
+    {
+        display.clearDisplay();
+
+        // Draw title that fades away
+        display.setTextSize(1);
+        display.setTextColor(SSD1306_WHITE);
+        display.setCursor(14, 10);
+        display.println("FireShield 360");
+
+        // Draw horizontal line
+        display.drawLine(0, 20, SCREEN_WIDTH, 20, SSD1306_WHITE);
+
+        // Draw power icon (alternating to create blink effect)
+        if (i % 2 == 0)
+        {
+            display.drawBitmap(48, 24, power_icon, 32, 32, SSD1306_WHITE);
+        }
+
+        // Draw "Powering Off" text
+        display.setCursor(24, 56);
+        display.println("POWERING OFF...");
+
+        display.display();
+        delay(250);
+    }
+
+    // Final phase - Fade out animation
+    for (int fadeStep = 0; fadeStep < 4; fadeStep++)
+    {
+        display.clearDisplay();
+
+        // Only draw elements based on fade step to create fading effect
+        if (fadeStep < 3)
+        {
+            display.drawBitmap(48, 24, power_icon, 32, 32, SSD1306_WHITE);
+        }
+
+        if (fadeStep < 2)
+        {
+            display.setTextSize(1);
+            display.setCursor(24, 56);
+            display.println("POWERING OFF...");
+        }
+
+        display.display();
+        delay(300);
+    }
+
+    // Final black screen for powered off state
+    display.clearDisplay();
+    display.display();
+    delay(200);
+
+    // Show final hint - very dim
+    display.clearDisplay();
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0);
-    display.println("FireShield 360");
-
-    // Draw horizontal line
-    display.drawLine(0, 12, SCREEN_WIDTH, 12, SSD1306_WHITE);
-
-    // Display power off message
-    display.setCursor(0, 28);
-    display.setTextSize(2);
-    display.println("POWER OFF");
-
-    // Go back to normal text size
-    display.setTextSize(1);
-    display.setCursor(0, 50);
-    display.println("Switch ON to activate");
-
+    display.setCursor(8, 28);
+    display.println("Switch ON to restart");
     display.display();
 }
