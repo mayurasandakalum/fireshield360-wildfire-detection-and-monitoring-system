@@ -296,3 +296,27 @@ void processMQTTMessages()
         client.loop();
     }
 }
+
+void disconnectMQTT()
+{
+    if (client.connected())
+    {
+        client.disconnect();
+        Serial.println("Disconnected from MQTT broker");
+    }
+}
+
+void reconnectMQTT()
+{
+    // Try to reconnect to the broker
+    Serial.println("Reconnecting to MQTT broker...");
+    if (client.connect("ESP32Client", mqtt_username_global, mqtt_password_global))
+    {
+        Serial.println("Reconnected to MQTT broker");
+    }
+    else
+    {
+        Serial.print("Failed to reconnect to MQTT broker, rc=");
+        Serial.println(client.state());
+    }
+}

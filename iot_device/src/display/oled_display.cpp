@@ -897,3 +897,29 @@ void displaySensorCheck(const String &sensorName)
 
     display.display();
 }
+
+void displayPowerOff()
+{
+    display.clearDisplay();
+
+    // Draw title
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(0, 0);
+    display.println("FireShield 360");
+
+    // Draw horizontal line
+    display.drawLine(0, 12, SCREEN_WIDTH, 12, SSD1306_WHITE);
+
+    // Display power off message
+    display.setCursor(0, 28);
+    display.setTextSize(2);
+    display.println("POWER OFF");
+
+    // Go back to normal text size
+    display.setTextSize(1);
+    display.setCursor(0, 50);
+    display.println("Switch ON to activate");
+
+    display.display();
+}

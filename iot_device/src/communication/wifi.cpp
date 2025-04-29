@@ -91,3 +91,10 @@ void updateWifiStatusLed()
         digitalWrite(wifi_status_led_pin, LOW); // LED off when disconnected
     }
 }
+
+void disconnectWiFi()
+{
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+    Serial.println("WiFi disconnected and turned off");
+}

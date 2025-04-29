@@ -70,6 +70,9 @@ void displayInitStatus(const String &message, int progress = -1);
 // Function to display sensor check message
 void displaySensorCheck(const String &sensorName);
 
+// Function to display power off message
+void displayPowerOff();
+
 // Include wildfire detection for threshold checks
 #include "../detection/wildfire_detection.h"
 
