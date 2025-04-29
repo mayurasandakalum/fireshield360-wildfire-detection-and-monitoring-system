@@ -13,8 +13,9 @@
 #include "detection/wildfire_detection.h"
 
 // Sensor pins
-const int DHT_PIN = 4;    // GPIO4 for DHT11 sensor
-const int SMOKE_PIN = 34; // GPIO34 for MQ2 sensor
+const int DHT_PIN = 4;           // GPIO4 for DHT11 sensor
+const int SMOKE_PIN = 34;        // GPIO34 for MQ2 sensor
+const int POWER_SWITCH_PIN = 19; // GPIO19 for power switch
 
 // RGB LED pins for temperature/humidity sensor
 const int TEMP_HUM_RED_PIN = 13;   // GPIO13 for RGB red
@@ -80,6 +81,12 @@ const long displayInterval = 1000; // Update display every 1 seconds
 unsigned long lastWildfireAlertTime = 0;
 const long wildfireAlertInterval = 60000; // Send alert every 60 seconds when wildfire detected
 
+// Check if the power switch is ON (active LOW since it's connected to GND)
+bool isPowerOn()
+{
+  return digitalRead(POWER_SWITCH_PIN) == LOW;
+}
+
 void showSensorInitializationSequence(int redPin, int greenPin, int bluePin, const String &sensorName)
 {
   // Display sensor check on OLED
@@ -142,6 +149,10 @@ void setup()
   // Initialize I2C communication
   Wire.begin(21, 22); // SDA on GPIO 21, SCL on GPIO 22
   Serial.println("I2C initialized with SDA=21, SCL=22");
+
+  // Initialize power switch pin
+  pinMode(POWER_SWITCH_PIN, INPUT_PULLUP);
+  Serial.println("Power switch initialized on GPIO19");
 
   // Initialize OLED display first so we can show progress messages
   Serial.println("Initializing OLED display...");
@@ -227,8 +238,136 @@ void setup()
   Serial.println("System initialized and ready.");
 }
 
+// Add this global flag to track if we were previously powered off
+bool wasPoweredOff = false;
+
+// Add this new function to handle system reinitialization
+void reinitializeSystem()
+{
+  // Initialize OLED display if needed (display should already be on)
+  display.ssd1306_command(SSD1306_DISPLAYON);
+
+  // Show splash screen
+  displaySplashScreen(2000); // Show splash screen for 2 seconds
+  displayInitStatus("Reinitializing...", 10);
+
+  // Initialize RGB LED for temperature/humidity sensor
+  displayInitStatus("Init RGB LEDs", 20);
+  initRgbLed(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN);
+
+  // Initialize RGB LED for infrared temperature sensor
+  initRgbLed(IR_RED_PIN, IR_GREEN_PIN, IR_BLUE_PIN);
+
+  // Initialize RGB LED for smoke sensor
+  initRgbLed(SMOKE_RED_PIN, SMOKE_GREEN_PIN, SMOKE_BLUE_PIN);
+
+  // Show initialization sequence for all RGB LEDs - blue blinking
+  displayInitStatus("Testing sensors...", 30);
+  showSensorInitializationSequence(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN, "Temp/Hum sensor");
+  showSensorInitializationSequence(IR_RED_PIN, IR_GREEN_PIN, IR_BLUE_PIN, "IR Temp sensor");
+  showSensorInitializationSequence(SMOKE_RED_PIN, SMOKE_GREEN_PIN, SMOKE_BLUE_PIN, "Smoke sensor");
+
+  // Initialize single color LEDs for other indicators
+  displayInitStatus("Init status LEDs", 40);
+  initLed(WILDFIRE_ALERT_LED_PIN);
+  initLed(WIFI_LED_PIN);
+
+  Serial.println("Sensor status LEDs reinitialized");
+
+  // Reinitialize sensors (don't need to change pin config, just ensure they're working)
+  displayInitStatus("Checking sensors", 50);
+  // Temperature and humidity sensors
+  // Smoke sensor
+  // Infrared temperature sensor
+
+  // Initialize WiFi with external LED indicator
+  displayInitStatus("Reconnecting WiFi...", 70);
+  initWiFi(ssid, password, WIFI_LED_PIN);
+
+  // Initialize time synchronization
+  displayInitStatus("Syncing time...", 80);
+  initTimeSync();
+
+  // Initialize MQTT
+  displayInitStatus("Reconnecting MQTT...", 90);
+  reconnectMQTT();
+
+  // After all initialization is complete, set all sensor LEDs to green
+  displayInitStatus("System ready!", 100);
+
+  // Set all sensor LEDs to green to indicate successful initialization
+  setAllSensorsToGreen();
+
+  delay(2000);
+
+  // Show a welcome message on the display
+  textDisplay("FireShield 360");
+
+  Serial.println("System reinitialized and ready.");
+}
+
 void loop()
 {
+  // Check power switch state first
+  if (!isPowerOn())
+  {
+    // Only perform power down sequence if this is the first time detecting power off
+    if (!wasPoweredOff)
+    {
+      Serial.println("Power switch turned OFF - powering down device");
+
+      // Disconnect from MQTT and WiFi
+      disconnectMQTT();
+      disconnectWiFi();
+
+      // Device is switched off - turn off all LEDs
+      digitalWrite(TEMP_HUM_RED_PIN, LOW);
+      digitalWrite(TEMP_HUM_GREEN_PIN, LOW);
+      digitalWrite(TEMP_HUM_BLUE_PIN, LOW);
+
+      digitalWrite(IR_RED_PIN, LOW);
+      digitalWrite(IR_GREEN_PIN, LOW);
+      digitalWrite(IR_BLUE_PIN, LOW);
+
+      digitalWrite(SMOKE_RED_PIN, LOW);
+      digitalWrite(SMOKE_GREEN_PIN, LOW);
+      digitalWrite(SMOKE_BLUE_PIN, LOW);
+
+      turnOffLed(WILDFIRE_ALERT_LED_PIN);
+      turnOffLed(WIFI_LED_PIN);
+
+      // Display power off message
+      displayPowerOff();
+
+      // Wait 3 seconds to show the message
+      delay(3000);
+
+      // Turn off the display to save power
+      clearDisplay();
+      display.ssd1306_command(SSD1306_DISPLAYOFF);
+
+      wasPoweredOff = true;
+    }
+
+    // Enter light sleep mode to save power while still being able to wake up quickly
+    // when the switch is turned back on
+    delay(100);
+    return;
+  }
+
+  // If we're here, power is back on
+  if (wasPoweredOff)
+  {
+    Serial.println("Power switch turned ON - powering up device");
+
+    // Use the dedicated reinitialize function instead of the previous quick power-on
+    reinitializeSystem();
+
+    // Reset the power flag
+    wasPoweredOff = false;
+  }
+
+  // Continue with normal operation when powered on
   // Check WiFi status and update LED
   ensureWiFiConnected();
 

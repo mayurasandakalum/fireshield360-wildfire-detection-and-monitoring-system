@@ -18,4 +18,7 @@ bool isWiFiConnected();
 // Update LED based on connection status
 void updateWifiStatusLed();
 
+// Function to disconnect from WiFi
+void disconnectWiFi();
+
 #endif // WIFI_H

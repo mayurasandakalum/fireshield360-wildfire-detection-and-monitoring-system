@@ -28,4 +28,10 @@ bool subscribeTopic(const char *topic);
 // Unsubscribe from a topic
 bool unsubscribeTopic(const char *topic);
 
+// Function to disconnect from MQTT broker
+void disconnectMQTT();
+
+// Function to reconnect to MQTT broker using stored credentials
+void reconnectMQTT();
+
 #endif // MQTT_H
