@@ -9,6 +9,9 @@
 // Initialize MQTT client
 void initMQTT(const char *server, int port, const char *username, const char *password);
 
+// Set message callback
+void setMQTTCallback(void (*callback)(char *, byte *, unsigned int));
+
 // Ensure MQTT is connected
 bool ensureMQTTConnected();
 
