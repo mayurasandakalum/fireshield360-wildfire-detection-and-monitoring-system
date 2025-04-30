@@ -540,7 +540,25 @@ void loop()
 
   // Check for wildfire conditions - now requires at least 2 sensors exceeding thresholds
   int thresholdsExceeded = getNumberOfThresholdsExceeded(temperature, humidity, smokeValue, irTemperature);
+
+  // Detect if wildfire status changed
+  bool previousWildfireState = wildfireDetected;
   wildfireDetected = (thresholdsExceeded >= 2); // Alert when 2 or more thresholds are exceeded
+
+  // Activate buzzer immediately when wildfire is first detected
+  if (wildfireDetected && !previousWildfireState)
+  {
+    Serial.println("POTENTIAL WILDFIRE DETECTED - activating local alert buzzer");
+    soundFireAlert(BUZZER_ALERT_DURATION);
+  }
+  // Only stop buzzer if wildfire is no longer detected AND the alert has been active for at least BUZZER_ALERT_DURATION
+  // This ensures the alert always sounds for at least the full 10 seconds
+  else if (!wildfireDetected && previousWildfireState && isBuzzerActive())
+  {
+    // Let the buzzer complete its full duration instead of stopping it early
+    // The updateBuzzer() function will automatically stop it after the duration is complete
+    Serial.println("Wildfire no longer detected - buzzer will complete its alert cycle");
+  }
 
   // Update wildfire alert LED
   if (wildfireDetected)
@@ -570,12 +588,11 @@ void loop()
         Serial.print("Thresholds exceeded: ");
         Serial.println(thresholdsExceeded);
 
-        // Activate the buzzer for local fire alerts
-        if (!isBuzzerActive())
-        {
-          Serial.println("POTENTIAL WILDFIRE DETECTED - activating local alert buzzer");
-          soundFireAlert(BUZZER_ALERT_DURATION);
-        }
+        // We no longer need this here since we activate the buzzer immediately when wildfire is detected
+        // if (!isBuzzerActive()) {
+        //   Serial.println("POTENTIAL WILDFIRE DETECTED - activating local alert buzzer");
+        //   soundFireAlert(BUZZER_ALERT_DURATION);
+        // }
       }
       else
       {

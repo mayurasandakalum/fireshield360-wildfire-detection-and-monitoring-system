@@ -25,7 +25,15 @@ static const int fireAlertLowTime = 100;  // 100ms off
 // Verified alert pattern timing
 static const int verifiedAlertHighTime = 500; // 500ms on
 static const int verifiedAlertLowTime = 500;  // 500ms off
-static const int verifiedAlertTone = 1000;    // 1kHz tone
+
+// Tone frequencies
+static const int fireAlertTone = 1000;     // 1kHz tone for fire alert
+static const int verifiedAlertTone = 1000; // 1kHz tone for verified alert
+
+// PWM channel for tone generation
+static const int pwmChannel = 0;
+static const int pwmResolution = 8;
+static const int pwmDutyCycle = 127; // 50% duty cycle
 
 // Function to generate a tone using PWM (ESP32 doesn't have built-in tone() function)
 void generateTone(int pin, int frequency)
@@ -33,20 +41,15 @@ void generateTone(int pin, int frequency)
     if (frequency == 0)
     {
         // No tone - equivalent to noTone()
+        ledcDetachPin(pin);
         digitalWrite(pin, LOW);
     }
     else
     {
         // Generate a tone using PWM
-        // ESP32 ledcWrite approach
-        // For simplicity in this implementation, we'll use a 50% duty cycle
-        int pwmChannel = 0;
-        int resolution = 8;
-        int dutyCycle = 127; // 50% of 255
-
-        ledcSetup(pwmChannel, frequency, resolution);
+        ledcSetup(pwmChannel, frequency, pwmResolution);
         ledcAttachPin(pin, pwmChannel);
-        ledcWrite(pwmChannel, dutyCycle);
+        ledcWrite(pwmChannel, pwmDutyCycle);
     }
 }
 
@@ -109,15 +112,7 @@ void stopBuzzer()
         return;
     }
 
-    if (currentAlertType == VERIFIED_ALERT)
-    {
-        stopTone(buzzerPin);
-    }
-    else
-    {
-        digitalWrite(buzzerPin, LOW);
-    }
-
+    stopTone(buzzerPin);
     isAlertActive = false;
     currentAlertType = NONE;
 }
@@ -145,16 +140,16 @@ void updateBuzzer()
 
     if (currentAlertType == FIRE_ALERT)
     {
-        // Generate fire alert pattern
+        // Generate fire alert pattern with tone
         unsigned long elapsedTime = (currentTime - alertStartTime) % (fireAlertHighTime + fireAlertLowTime);
 
         if (elapsedTime < fireAlertHighTime)
         {
-            digitalWrite(buzzerPin, HIGH); // Buzzer on
+            generateTone(buzzerPin, fireAlertTone); // Use 1kHz tone instead of just HIGH
         }
         else
         {
-            digitalWrite(buzzerPin, LOW); // Buzzer off
+            stopTone(buzzerPin); // Properly stop the tone
         }
     }
     else if (currentAlertType == VERIFIED_ALERT)
@@ -164,11 +159,11 @@ void updateBuzzer()
 
         if (elapsedTime < verifiedAlertHighTime)
         {
-            generateTone(buzzerPin, verifiedAlertTone); // Buzzer on with tone
+            generateTone(buzzerPin, verifiedAlertTone);
         }
         else
         {
-            stopTone(buzzerPin); // Buzzer off
+            stopTone(buzzerPin);
         }
     }
 }
