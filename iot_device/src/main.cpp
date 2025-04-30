@@ -95,42 +95,15 @@ const long displayInterval = 1000; // Update display every 1 seconds
 unsigned long lastWildfireAlertTime = 0;
 const long wildfireAlertInterval = 60000; // Send alert every 60 seconds when wildfire detected
 
-// Add these variables for switch debouncing
-const unsigned long DEBOUNCE_DELAY = 50; // 50ms debounce time
-unsigned long lastDebounceTime = 0;
-int lastSwitchState = HIGH; // Assume switch is initially OFF
-int switchState = HIGH;     // Current debounced switch state
+// Standard buzzer sound duration
+const unsigned long BUZZER_ALERT_DURATION = 10000; // 10 seconds duration for buzzer alerts
 
-// Improved isPowerOn function with debouncing
+// Simplified isPowerOn function without debouncing
 bool isPowerOn()
 {
-  // Read the current raw state of the switch
-  int reading = digitalRead(POWER_SWITCH_PIN);
-
-  // Check if switch changed, due to noise or pressing
-  if (reading != lastSwitchState)
-  {
-    // Reset the debouncing timer
-    lastDebounceTime = millis();
-  }
-
-  // If sufficient time has passed, update the switch state
-  if ((millis() - lastDebounceTime) > DEBOUNCE_DELAY)
-  {
-    // Only update switchState if reading is stable
-    if (reading != switchState)
-    {
-      switchState = reading;
-      Serial.print("Power switch state changed to: ");
-      Serial.println(switchState == LOW ? "ON" : "OFF");
-    }
-  }
-
-  // Save the raw reading for next comparison
-  lastSwitchState = reading;
-
-  // Return true if switch is ON (active LOW because it's connected to GND)
-  return switchState == LOW;
+  // Simply read the current state of the switch and return it
+  // (LOW means ON since it's connected to GND when switch is on)
+  return digitalRead(POWER_SWITCH_PIN) == LOW;
 }
 
 void showSensorInitializationSequence(int redPin, int greenPin, int bluePin, const String &sensorName)
@@ -196,9 +169,16 @@ void setup()
   Wire.begin(21, 22); // SDA on GPIO 21, SCL on GPIO 22
   Serial.println("I2C initialized with SDA=21, SCL=22");
 
-  // Initialize power switch pin
-  pinMode(POWER_SWITCH_PIN, INPUT_PULLUP); // GPIO35 is input-only
-  Serial.println("Power switch initialized on GPIO35");
+  // Initialize power switch pin - Note: GPIO35 is input-only
+  pinMode(POWER_SWITCH_PIN, INPUT_PULLUP);
+
+  // Add a delay to stabilize input reading
+  delay(100);
+
+  // Check initial switch position
+  int initialReading = digitalRead(POWER_SWITCH_PIN);
+  Serial.print("Power switch initialized on GPIO35. Initial state: ");
+  Serial.println(initialReading == LOW ? "ON" : "OFF");
 
   // Initialize OLED display first so we can show progress messages
   Serial.println("Initializing OLED display...");
@@ -407,8 +387,8 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
       // Display verification message
       textDisplay("VERIFIED WILDFIRE!");
 
-      // Sound the verified alert tone for 5 seconds
-      soundVerifiedAlert(5000);
+      // Sound the verified alert tone for 10 seconds
+      soundVerifiedAlert(BUZZER_ALERT_DURATION);
 
       // Store the verification status
       verifiedWildfireDetected = true;
@@ -589,6 +569,12 @@ void loop()
         Serial.println("Wildfire alert published to MQTT");
         Serial.print("Thresholds exceeded: ");
         Serial.println(thresholdsExceeded);
+
+        // Sound fire alert for 10 seconds when publishing wildfire alert
+        if (!isBuzzerActive())
+        {
+          soundFireAlert(BUZZER_ALERT_DURATION);
+        }
       }
       else
       {

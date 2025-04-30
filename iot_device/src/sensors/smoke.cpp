@@ -7,7 +7,7 @@ static int lastSmokeValue = 0;                   // Last read smoke value
 static bool smokeReadingValid = false;           // Flag for valid reading
 static unsigned long lastReadTime = 0;           // Time of last reading
 static const unsigned long READ_INTERVAL = 1000; // Read every 1 second
-static int smokeThreshold = 1500;                // Default threshold for smoke detection
+static int smokeThreshold = 2400;                // Default threshold for smoke detection
 
 // Constants for validation
 static const int SMOKE_MIN_VALID = 100;    // Minimum valid reading
