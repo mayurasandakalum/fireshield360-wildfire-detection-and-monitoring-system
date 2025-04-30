@@ -20,7 +20,6 @@ from config import (
     MQTT_PORT,
     MQTT_USER,
     MQTT_PASSWORD,
-    MQTT_TOPIC_ALERT,
     MQTT_TOPIC_SENSOR,
     MQTT_TOPIC_VERIFIED,
 )
@@ -202,8 +201,8 @@ def verify_potential_wildfire(payload):
 
         if total_images > 0:
             detection_ratio = fire_detected_count / total_images
-            # If at least 20% of images detected fire, consider it a verified wildfire
-            final_fire_detected = detection_ratio >= 0.2
+            # If at least one image detected fire, consider it a verified wildfire
+            final_fire_detected = fire_detected_count > 0
 
             print_separator()
             print_info(f"Verification complete: Analyzed {total_images} images")
@@ -214,7 +213,7 @@ def verify_potential_wildfire(payload):
             if final_fire_detected:
                 print_alert("WILDFIRE CONFIRMED by image analysis!")
             else:
-                print_info("No significant wildfire evidence found in images")
+                print_info("No wildfire evidence found in images")
         else:
             print_warning("No valid images were captured for verification")
             # Default to sensor data if no images were processed
@@ -421,35 +420,6 @@ def on_message(client, userdata, msg):
                 # No potential wildfire, just forward the data
                 print_info("No potential wildfire detected, forwarding data")
                 publish_verified_status(payload, False)
-
-        # Process legacy wildfire alert messages
-        elif msg.topic == MQTT_TOPIC_ALERT and payload.get("potential_wildfire", False):
-            print_alert(f"Wildfire alert received: {payload}")
-            print_separator()
-
-            # Get timestamp from the payload or use current time
-            timestamp = payload.get(
-                "timestamp", datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            )
-
-            # Create a folder for this specific alert based on timestamp
-            alert_folder = create_alert_folder(timestamp)
-
-            # Start capturing images in a separate thread so it doesn't block the MQTT client
-            image_thread = threading.Thread(
-                target=capture_images_for_duration,
-                args=(alert_folder, payload),
-                kwargs={
-                    "duration_seconds": CAPTURE_DURATION_SECONDS,
-                    "interval_seconds": CAPTURE_INTERVAL_SECONDS,
-                },
-                name=f"Capture-{os.path.basename(alert_folder)}",
-            )
-            # do not set daemon=True so we can wait on shutdown
-            image_thread.start()
-            print_info(
-                f"Started image capture process for {CAPTURE_DURATION_SECONDS} seconds"
-            )
 
     except Exception as e:
         print_error(f"Error processing MQTT message: {e}")

@@ -570,9 +570,10 @@ void loop()
         Serial.print("Thresholds exceeded: ");
         Serial.println(thresholdsExceeded);
 
-        // Sound fire alert for 10 seconds when publishing wildfire alert
+        // Activate the buzzer for local fire alerts
         if (!isBuzzerActive())
         {
+          Serial.println("POTENTIAL WILDFIRE DETECTED - activating local alert buzzer");
           soundFireAlert(BUZZER_ALERT_DURATION);
         }
       }
