@@ -22,6 +22,7 @@ from config import (
     MQTT_PASSWORD,
     MQTT_TOPIC_SENSOR,
     MQTT_TOPIC_VERIFIED,
+    TELEGRAM_ENABLED,
 )
 from ai_detection.fire_detector import FireDetector
 from utils.terminal import (
@@ -102,10 +103,12 @@ def verify_potential_wildfire(payload):
         # Create a folder for this verification
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         alert_folder = create_alert_folder(timestamp)
+        alert_id = os.path.basename(alert_folder)
 
         # Initialize detection results tracking
         total_images = 0
         fire_detected_count = 0
+        fire_detected_yet = False  # Track if we've detected fire at least once
 
         # Start capturing and processing images for 1 minute
         end_time = time.time() + 60  # 1 minute
@@ -145,23 +148,110 @@ def verify_potential_wildfire(payload):
                         fire_detected_count += 1
                         print_alert(f"FIRE/SMOKE DETECTED in image {image_count+1}!")
 
-                    # Save the image with detection results
-                    detection_result = (
-                        result_img,
-                        detection_text,
-                        fire_detected,
-                        detection_info,
-                    )
-                    original_path, detection_path, metadata_path = save_image(
-                        image_data,
-                        alert_folder,
-                        image_count,
-                        payload,
-                        detection_result,
-                    )
+                        # Send Telegram notification if enabled and fire is detected
+                        if TELEGRAM_ENABLED:
+                            try:
+                                from notifications.telegram_notifier import (
+                                    send_fire_alert,
+                                    send_photo,
+                                )
 
-                    # Save detection image if available
-                    if detection_result and detection_result[0] is not None:
+                                # Send initial alert only for the first fire detection
+                                if not fire_detected_yet:
+                                    send_fire_alert(alert_id, sensor_data=payload)
+                                    fire_detected_yet = True
+
+                                # Save the image with detection results
+                                detection_result = (
+                                    result_img,
+                                    detection_text,
+                                    fire_detected,
+                                    detection_info,
+                                )
+                                original_path, detection_path, metadata_path = (
+                                    save_image(
+                                        image_data,
+                                        alert_folder,
+                                        image_count,
+                                        payload,
+                                        detection_result,
+                                    )
+                                )
+
+                                # Save detection image explicitly
+                                try:
+                                    fire_detector.save_detection_image(
+                                        result_img, detection_path
+                                    )
+                                    print_success(
+                                        f"Detection image saved to {detection_path}"
+                                    )
+
+                                    # Wait briefly to ensure the file is completely written
+                                    time.sleep(1)
+
+                                    # Verify file exists and has content
+                                    if (
+                                        os.path.exists(detection_path)
+                                        and os.path.getsize(detection_path) > 0
+                                    ):
+                                        # Send the detection image
+                                        caption = f"Fire detected! Alert ID: {alert_id}, Image: {image_count+1}"
+                                        print_info(
+                                            f"Sending detection image to Telegram: {detection_path}"
+                                        )
+                                        send_result = send_photo(
+                                            detection_path, caption=caption
+                                        )
+
+                                        if not send_result:
+                                            print_warning(
+                                                f"Failed to send image to Telegram, will retry once"
+                                            )
+                                            # Retry once after a short delay
+                                            time.sleep(2)
+                                            send_photo(detection_path, caption=caption)
+                                    else:
+                                        print_error(
+                                            f"Detection image file is missing or empty: {detection_path}"
+                                        )
+                                except Exception as save_error:
+                                    print_error(
+                                        f"Error handling detection image: {save_error}"
+                                    )
+                                    import traceback
+
+                                    traceback.print_exc()
+                            except Exception as telegram_error:
+                                print_error(
+                                    f"Failed to send Telegram notification: {telegram_error}"
+                                )
+                                import traceback
+
+                                traceback.print_exc()
+
+                    # Save the image with detection results if not already saved above
+                    if not fire_detected or not TELEGRAM_ENABLED:
+                        detection_result = (
+                            result_img,
+                            detection_text,
+                            fire_detected,
+                            detection_info,
+                        )
+                        original_path, detection_path, metadata_path = save_image(
+                            image_data,
+                            alert_folder,
+                            image_count,
+                            payload,
+                            detection_result,
+                        )
+
+                    # Save detection image if available and not already saved
+                    if (
+                        detection_result
+                        and detection_result[0] is not None
+                        and (not fire_detected or not TELEGRAM_ENABLED)
+                    ):
                         try:
                             fire_detector.save_detection_image(
                                 detection_result[0], detection_path
@@ -252,6 +342,7 @@ def capture_images_for_duration(
         end_time = time.time() + duration_seconds
         image_count = 0
         alert_id = os.path.basename(alert_folder)
+        fire_detected_yet = False  # Track if we've detected fire in this session
 
         # Check if model file exists
         if not os.path.exists(AI_MODEL_PATH):
@@ -305,12 +396,118 @@ def capture_images_for_duration(
                                     if fire_detected:
                                         print_alert("FIRE/SMOKE DETECTED IN IMAGE!")
 
-                                    detection_result = (
-                                        result_img,
-                                        detection_text,
-                                        fire_detected,
-                                        detection_info,
-                                    )
+                                        # Send Telegram notification if enabled and fire is detected
+                                        if TELEGRAM_ENABLED:
+                                            try:
+                                                from notifications.telegram_notifier import (
+                                                    send_fire_alert,
+                                                    send_photo,
+                                                )
+
+                                                # Send initial alert only for the first fire detection
+                                                if not fire_detected_yet:
+                                                    send_fire_alert(
+                                                        alert_id, sensor_data=payload
+                                                    )
+                                                    fire_detected_yet = True
+
+                                                # Save the image with detection results
+                                                detection_result = (
+                                                    result_img,
+                                                    detection_text,
+                                                    fire_detected,
+                                                    detection_info,
+                                                )
+                                                (
+                                                    original_path,
+                                                    detection_path,
+                                                    metadata_path,
+                                                ) = save_image(
+                                                    image_data,
+                                                    alert_folder,
+                                                    image_count,
+                                                    payload,
+                                                    detection_result,
+                                                )
+
+                                                # Save detection image explicitly
+                                                if result_img is not None:
+                                                    try:
+                                                        fire_detector.save_detection_image(
+                                                            result_img, detection_path
+                                                        )
+                                                        print_success(
+                                                            f"Detection image saved to {detection_path}"
+                                                        )
+
+                                                        # Wait briefly to ensure the file is completely written
+                                                        time.sleep(1)
+
+                                                        # Verify file exists and has content
+                                                        if (
+                                                            os.path.exists(
+                                                                detection_path
+                                                            )
+                                                            and os.path.getsize(
+                                                                detection_path
+                                                            )
+                                                            > 0
+                                                        ):
+                                                            # Send the detection image to Telegram
+                                                            caption = f"Fire detected! Alert ID: {alert_id}, Image: {image_count+1}"
+                                                            print_info(
+                                                                f"Sending detection image to Telegram: {detection_path}"
+                                                            )
+                                                            send_result = send_photo(
+                                                                detection_path,
+                                                                caption=caption,
+                                                            )
+
+                                                            if not send_result:
+                                                                print_warning(
+                                                                    f"Failed to send image to Telegram, will retry once"
+                                                                )
+                                                                # Retry once after a short delay
+                                                                time.sleep(2)
+                                                                send_photo(
+                                                                    detection_path,
+                                                                    caption=caption,
+                                                                )
+                                                        else:
+                                                            print_error(
+                                                                f"Detection image file is missing or empty: {detection_path}"
+                                                            )
+                                                    except Exception as save_error:
+                                                        print_error(
+                                                            f"Error handling detection image: {save_error}"
+                                                        )
+                                                        import traceback
+
+                                                        traceback.print_exc()
+
+                                            except Exception as telegram_error:
+                                                print_error(
+                                                    f"Failed to send Telegram notification: {telegram_error}"
+                                                )
+                                                import traceback
+
+                                                traceback.print_exc()
+
+                                                # Still save the image without sending to Telegram
+                                                detection_result = (
+                                                    result_img,
+                                                    detection_text,
+                                                    fire_detected,
+                                                    detection_info,
+                                                )
+                                    else:
+                                        detection_result = (
+                                            result_img,
+                                            detection_text,
+                                            fire_detected,
+                                            detection_info,
+                                        )
+
                             except Exception as ai_error:
                                 print_error(f"AI detection failed: {ai_error}")
                                 # Continue without AI detection
@@ -319,32 +516,33 @@ def capture_images_for_duration(
                             traceback.print_exc()
                             # Continue without AI detection
 
-                    # Save images (original and detection if available)
-                    try:
-                        original_path, detection_path, metadata_path = save_image(
-                            image_data,
-                            alert_folder,
-                            image_count,
-                            payload,
-                            detection_result,
-                        )
+                    # Save images if not already saved above (non-fire or Telegram disabled)
+                    if not (fire_detected and TELEGRAM_ENABLED and detection_result):
+                        try:
+                            original_path, detection_path, metadata_path = save_image(
+                                image_data,
+                                alert_folder,
+                                image_count,
+                                payload,
+                                detection_result,
+                            )
 
-                        # Save detection image if available
-                        if detection_result and detection_result[0] is not None:
-                            try:
-                                fire_detector.save_detection_image(
-                                    detection_result[0], detection_path
-                                )
-                                print_success(
-                                    f"Detection image saved to {detection_path}"
-                                )
-                            except Exception as save_error:
-                                print_error(
-                                    f"Error saving detection image: {save_error}"
-                                )
-                    except Exception as e:
-                        print_error(f"Error saving image: {e}")
-                        traceback.print_exc()
+                            # Save detection image if available
+                            if detection_result and detection_result[0] is not None:
+                                try:
+                                    fire_detector.save_detection_image(
+                                        detection_result[0], detection_path
+                                    )
+                                    print_success(
+                                        f"Detection image saved to {detection_path}"
+                                    )
+                                except Exception as save_error:
+                                    print_error(
+                                        f"Error saving detection image: {save_error}"
+                                    )
+                        except Exception as e:
+                            print_error(f"Error saving image: {e}")
+                            traceback.print_exc()
 
                     image_count += 1
                 else:

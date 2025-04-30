@@ -40,3 +40,8 @@ AI_MODELS_DIR = os.path.join(BASE_DIR, "fire_models")
 AI_MODEL_PATH = os.path.join(AI_MODELS_DIR, "fire_l.pt")
 AI_CONF_THRESHOLD = 0.10
 AI_IOU_THRESHOLD = 0.10
+
+# Telegram notification settings
+TELEGRAM_TOKEN = "7336878856:AAFb1UB5ea5qxJvGldgFKyDfdIiiVwQ-4EE"
+TELEGRAM_CHAT_ID = "1219814523"  # Your Telegram chat ID
+TELEGRAM_ENABLED = True  # Enable/disable Telegram notifications
