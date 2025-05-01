@@ -5,7 +5,14 @@ import sys
 import threading
 from mqtt_client.client import setup_mqtt
 from handlers import on_message, get_active_captures
-from config import IMAGE_FOLDER, AI_MODELS_DIR, AI_MODEL_PATH
+from config import (
+    IMAGE_FOLDER,
+    AI_MODELS_DIR,
+    AI_MODEL_PATH,
+    TELEGRAM_ENABLED,
+    TELEGRAM_CHAT_ID,
+    TELEGRAM_TOKEN,
+)
 from utils.terminal import (
     print_header,
     print_info,
@@ -53,6 +60,24 @@ def main():
     # Ensure directories exist
     os.makedirs(IMAGE_FOLDER, exist_ok=True)
     os.makedirs(AI_MODELS_DIR, exist_ok=True)
+
+    # Initialize Telegram notifications if enabled
+    if TELEGRAM_ENABLED:
+        try:
+            from notifications.telegram_notifier import initialize_telegram
+
+            if TELEGRAM_CHAT_ID and TELEGRAM_TOKEN:
+                initialize_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)
+                print_success("Telegram notifications enabled")
+            else:
+                print_warning(
+                    "Telegram notifications enabled but missing CHAT_ID or TOKEN"
+                )
+        except Exception as e:
+            print_error(f"Failed to initialize Telegram: {e}")
+            import traceback
+
+            traceback.print_exc()
 
     # Check if YOLO model exists
     if not os.path.exists(AI_MODEL_PATH):

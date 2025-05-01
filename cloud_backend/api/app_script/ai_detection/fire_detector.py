@@ -216,10 +216,38 @@ class FireDetector:
     def save_detection_image(self, detection_img, output_path):
         """Save the detection image to the specified path"""
         try:
-            cv2.imwrite(output_path, detection_img)
-            return output_path
+            # Ensure the output directory exists
+            output_dir = os.path.dirname(output_path)
+            os.makedirs(output_dir, exist_ok=True)
+
+            # Make sure the image is valid
+            if detection_img is None or detection_img.size == 0:
+                print_error("Cannot save detection image: Image data is empty or None")
+                return None
+
+            # Save the image
+            result = cv2.imwrite(output_path, detection_img)
+
+            if not result:
+                print_error(f"cv2.imwrite failed to save image to {output_path}")
+                return None
+
+            # Verify the file was created and has content
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                print_success(
+                    f"Detection image saved successfully: {os.path.getsize(output_path)} bytes"
+                )
+                return output_path
+            else:
+                print_error(
+                    f"Image file not created or empty after cv2.imwrite: {output_path}"
+                )
+                return None
         except Exception as e:
             print_error(f"Error saving detection image: {e}")
+            import traceback
+
+            traceback.print_exc()
             return None
 
     def __del__(self):

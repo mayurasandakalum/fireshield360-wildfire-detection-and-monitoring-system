@@ -6,7 +6,6 @@ from config import (
     MQTT_PORT,
     MQTT_USER,
     MQTT_PASSWORD,
-    MQTT_TOPIC_ALERT,
     MQTT_TOPIC_SENSOR,
 )
 from utils.terminal import print_info, print_error, print_success, print_warning
@@ -15,9 +14,6 @@ from utils.terminal import print_info, print_error, print_success, print_warning
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print_success(f"Connected to MQTT broker successfully")
-        # Subscribe to wildfire alerts topic
-        client.subscribe(MQTT_TOPIC_ALERT)
-        print_info(f"Subscribed to {MQTT_TOPIC_ALERT}")
         # Subscribe to sensor data topic
         client.subscribe(MQTT_TOPIC_SENSOR)
         print_info(f"Subscribed to {MQTT_TOPIC_SENSOR}")

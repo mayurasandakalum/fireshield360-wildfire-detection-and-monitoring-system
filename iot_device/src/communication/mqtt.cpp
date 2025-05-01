@@ -30,6 +30,12 @@ void initMQTT(const char *server, int port, const char *username, const char *pa
     Serial.println("MQTT client initialized");
 }
 
+void setMQTTCallback(void (*callback)(char *, byte *, unsigned int))
+{
+    client.setCallback(callback);
+    Serial.println("MQTT callback function set");
+}
+
 bool ensureMQTTConnected()
 {
     // First ensure WiFi is connected
@@ -279,6 +285,29 @@ bool publishWildfireAlert(float temperature, float humidity, int smokeValue, flo
     else
     {
         Serial.println("Failed to publish wildfire alert to MQTT");
+    }
+
+    return result;
+}
+
+bool subscribeTopic(const char *topic)
+{
+    if (!ensureMQTTConnected())
+    {
+        return false;
+    }
+
+    bool result = client.subscribe(topic);
+
+    if (result)
+    {
+        Serial.print("Subscribed to topic: ");
+        Serial.println(topic);
+    }
+    else
+    {
+        Serial.print("Failed to subscribe to topic: ");
+        Serial.println(topic);
     }
 
     return result;

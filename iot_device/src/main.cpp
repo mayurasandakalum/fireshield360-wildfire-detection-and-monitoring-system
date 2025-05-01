@@ -9,13 +9,18 @@
 #include "communication/mqtt.h"
 #include "communication/time_sync.h"
 #include "actuators/led.h"
+#include "actuators/buzzer.h" // Add buzzer include
 #include "display/oled_display.h"
 #include "detection/wildfire_detection.h"
+
+// Forward declarations
+void mqttCallback(char *topic, byte *payload, unsigned int length);
+void reinitializeMQTTSubscriptions();
 
 // Sensor pins
 const int DHT_PIN = 4;           // GPIO4 for DHT11 sensor
 const int SMOKE_PIN = 34;        // GPIO34 for MQ2 sensor
-const int POWER_SWITCH_PIN = 19; // GPIO19 for power switch
+const int POWER_SWITCH_PIN = 35; // GPIO35 for power switch (input-only pin)
 
 // RGB LED pins for temperature/humidity sensor
 const int TEMP_HUM_RED_PIN = 13;   // GPIO13 for RGB red
@@ -41,6 +46,9 @@ const int SMOKE_BLUE_PIN = 33;  // GPIO33 for RGB blue
 const int WILDFIRE_ALERT_LED_PIN = 5; // Reassigned to GPIO5
 const int WIFI_LED_PIN = 2;           // Using built-in LED on GPIO2
 
+// Define buzzer pin
+const int BUZZER_PIN = 19; // GPIO19 for buzzer
+
 // Temperature and humidity thresholds for RGB LED status
 const float TEMP_HIGH_THRESHOLD = 35.0; // Temperature > 35°C: High warning (Red)
 const float TEMP_LOW_THRESHOLD = 15.0;  // Temperature < 15°C: Low warning (Blue)
@@ -56,6 +64,9 @@ float irTemperature = 0.0; // Add variable for infrared temperature
 // Add a variable to track wildfire detection
 bool wildfireDetected = false;
 
+// Add a variable to track verified wildfire detection
+bool verifiedWildfireDetected = false;
+
 // WiFi credentials
 const char *ssid = "NeuralNet";
 const char *password = "camtasia";
@@ -64,6 +75,9 @@ const char *password = "camtasia";
 const char *mqtt_server = "7ce36aef28e949f4b384e4808389cffc.s1.eu.hivemq.cloud";
 const int mqtt_port = 8883;
 const char *mqtt_topic = "esp32_01/sensors/data"; // Removed dedicated wildfire topic
+
+// Define the verification topic
+const char *verification_topic = "esp32_01/verified/status";
 
 // MQTT credentials
 const char *mqtt_username = "hivemq.webclient.1745152369573";
@@ -81,9 +95,14 @@ const long displayInterval = 1000; // Update display every 1 seconds
 unsigned long lastWildfireAlertTime = 0;
 const long wildfireAlertInterval = 60000; // Send alert every 60 seconds when wildfire detected
 
-// Check if the power switch is ON (active LOW since it's connected to GND)
+// Standard buzzer sound duration
+const unsigned long BUZZER_ALERT_DURATION = 10000; // 10 seconds duration for buzzer alerts
+
+// Simplified isPowerOn function without debouncing
 bool isPowerOn()
 {
+  // Simply read the current state of the switch and return it
+  // (LOW means ON since it's connected to GND when switch is on)
   return digitalRead(POWER_SWITCH_PIN) == LOW;
 }
 
@@ -150,9 +169,16 @@ void setup()
   Wire.begin(21, 22); // SDA on GPIO 21, SCL on GPIO 22
   Serial.println("I2C initialized with SDA=21, SCL=22");
 
-  // Initialize power switch pin
+  // Initialize power switch pin - Note: GPIO35 is input-only
   pinMode(POWER_SWITCH_PIN, INPUT_PULLUP);
-  Serial.println("Power switch initialized on GPIO19");
+
+  // Add a delay to stabilize input reading
+  delay(100);
+
+  // Check initial switch position
+  int initialReading = digitalRead(POWER_SWITCH_PIN);
+  Serial.print("Power switch initialized on GPIO35. Initial state: ");
+  Serial.println(initialReading == LOW ? "ON" : "OFF");
 
   // Initialize OLED display first so we can show progress messages
   Serial.println("Initializing OLED display...");
@@ -179,9 +205,9 @@ void setup()
 
   // Show initialization sequence for all RGB LEDs - blue blinking
   displayInitStatus("Testing sensors...", 30);
+  showSensorInitializationSequence(SMOKE_RED_PIN, SMOKE_GREEN_PIN, SMOKE_BLUE_PIN, "Smoke sensor");
   showSensorInitializationSequence(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN, "Temp/Hum sensor");
   showSensorInitializationSequence(IR_RED_PIN, IR_GREEN_PIN, IR_BLUE_PIN, "IR Temp sensor");
-  showSensorInitializationSequence(SMOKE_RED_PIN, SMOKE_GREEN_PIN, SMOKE_BLUE_PIN, "Smoke sensor");
 
   // At this point all sensor LEDs are still blue (kept on from showSensorInitializationSequence)
 
@@ -192,21 +218,26 @@ void setup()
 
   Serial.println("Sensor status LEDs initialized");
 
+  // Initialize smoke sensor (MQ2)
+  displayInitStatus("Init MQ2 sensor", 50);
+  Serial.println("Initializing MQ2 smoke sensor...");
+  initSmokeSensor(SMOKE_PIN);
+
   // Initialize temperature & humidity sensors (DHT11)
-  displayInitStatus("Init DHT11 sensor", 50);
+  displayInitStatus("Init DHT11 sensor", 60);
   Serial.println("Initializing DHT11 sensor...");
   initTemperatureSensor(DHT_PIN);
   initHumiditySensor(DHT_PIN);
-
-  // Initialize smoke sensor (MQ2)
-  displayInitStatus("Init MQ2 sensor", 60);
-  Serial.println("Initializing MQ2 smoke sensor...");
-  initSmokeSensor(SMOKE_PIN);
 
   // Initialize infrared temperature sensor (MLX90614)
   displayInitStatus("Init IR sensor", 70);
   Serial.println("Initializing MLX90614 infrared sensor...");
   initInfraredSensor();
+
+  // Initialize buzzer
+  displayInitStatus("Init buzzer", 65);
+  Serial.println("Initializing buzzer...");
+  initBuzzer(BUZZER_PIN);
 
   // Initialize wildfire detection with default thresholds
   displayInitStatus("Init detection logic", 80);
@@ -223,6 +254,11 @@ void setup()
   // Initialize MQTT
   displayInitStatus("Connecting MQTT...", 95);
   initMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_password);
+
+  // After MQTT initialization, set the callback function and subscribe to verification topic
+  displayInitStatus("MQTT subscriptions", 98);
+  setMQTTCallback(mqttCallback);
+  subscribeTopic(verification_topic);
 
   // After all initialization is complete, set all sensor LEDs to green
   displayInitStatus("System ready!", 100);
@@ -263,9 +299,9 @@ void reinitializeSystem()
 
   // Show initialization sequence for all RGB LEDs - blue blinking
   displayInitStatus("Testing sensors...", 30);
+  showSensorInitializationSequence(SMOKE_RED_PIN, SMOKE_GREEN_PIN, SMOKE_BLUE_PIN, "Smoke sensor");
   showSensorInitializationSequence(TEMP_HUM_RED_PIN, TEMP_HUM_GREEN_PIN, TEMP_HUM_BLUE_PIN, "Temp/Hum sensor");
   showSensorInitializationSequence(IR_RED_PIN, IR_GREEN_PIN, IR_BLUE_PIN, "IR Temp sensor");
-  showSensorInitializationSequence(SMOKE_RED_PIN, SMOKE_GREEN_PIN, SMOKE_BLUE_PIN, "Smoke sensor");
 
   // Initialize single color LEDs for other indicators
   displayInitStatus("Init status LEDs", 40);
@@ -292,6 +328,10 @@ void reinitializeSystem()
   displayInitStatus("Reconnecting MQTT...", 90);
   reconnectMQTT();
 
+  // Reinitialize MQTT subscriptions
+  displayInitStatus("MQTT subscriptions", 95);
+  reinitializeMQTTSubscriptions();
+
   // After all initialization is complete, set all sensor LEDs to green
   displayInitStatus("System ready!", 100);
 
@@ -306,10 +346,77 @@ void reinitializeSystem()
   Serial.println("System reinitialized and ready.");
 }
 
+// Callback function for MQTT messages
+void mqttCallback(char *topic, byte *payload, unsigned int length)
+{
+  Serial.print("Message received on topic: ");
+  Serial.println(topic);
+
+  // Convert the payload to a string
+  char message[length + 1];
+  memcpy(message, payload, length);
+  message[length] = '\0';
+
+  Serial.print("Message: ");
+  Serial.println(message);
+
+  // Check if this is a verification message
+  if (strcmp(topic, verification_topic) == 0)
+  {
+    // Parse the JSON message
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, message);
+
+    if (error)
+    {
+      Serial.print("Failed to parse JSON: ");
+      Serial.println(error.c_str());
+      return;
+    }
+
+    // Extract the verified wildfire detection status
+    bool verifiedWildfire = doc["wildfire_detected"];
+
+    Serial.print("VERIFICATION STATUS RECEIVED: Wildfire detected = ");
+    Serial.println(verifiedWildfire ? "TRUE" : "FALSE");
+
+    if (verifiedWildfire)
+    {
+      Serial.println("VERIFIED WILDFIRE DETECTED BY BACKEND!");
+
+      // Display verification message
+      textDisplay("VERIFIED WILDFIRE!");
+
+      // Sound the verified alert tone for 10 seconds
+      soundVerifiedAlert(BUZZER_ALERT_DURATION);
+
+      // Store the verification status
+      verifiedWildfireDetected = true;
+    }
+    else
+    {
+      Serial.println("Backend verification: No wildfire detected");
+
+      // Reset the verification status
+      verifiedWildfireDetected = false;
+    }
+  }
+}
+
+// Add this function to reinitialize MQTT subscriptions
+void reinitializeMQTTSubscriptions()
+{
+  // Set the callback and resubscribe to the verification topic
+  setMQTTCallback(mqttCallback);
+  subscribeTopic(verification_topic);
+}
+
 void loop()
 {
-  // Check power switch state first
-  if (!isPowerOn())
+  // Check power switch state with debouncing
+  bool powerOn = isPowerOn();
+
+  if (!powerOn)
   {
     // Only perform power down sequence if this is the first time detecting power off
     if (!wasPoweredOff)
@@ -349,22 +456,24 @@ void loop()
       wasPoweredOff = true;
     }
 
-    // Enter light sleep mode to save power while still being able to wake up quickly
-    // when the switch is turned back on
-    delay(100);
+    // Add more delay in power-off state to reduce chance of false triggers
+    delay(200);
     return;
   }
 
   // If we're here, power is back on
   if (wasPoweredOff)
   {
-    Serial.println("Power switch turned ON - powering up device");
+    // Add a safety delay before reinitializing to avoid rapid power cycling
+    delay(500);
 
-    // Use the dedicated reinitialize function instead of the previous quick power-on
-    reinitializeSystem();
-
-    // Reset the power flag
-    wasPoweredOff = false;
+    // Double-check power is still on after delay
+    if (isPowerOn())
+    {
+      Serial.println("Power switch turned ON - powering up device");
+      reinitializeSystem();
+      wasPoweredOff = false;
+    }
   }
 
   // Continue with normal operation when powered on
@@ -431,7 +540,25 @@ void loop()
 
   // Check for wildfire conditions - now requires at least 2 sensors exceeding thresholds
   int thresholdsExceeded = getNumberOfThresholdsExceeded(temperature, humidity, smokeValue, irTemperature);
+
+  // Detect if wildfire status changed
+  bool previousWildfireState = wildfireDetected;
   wildfireDetected = (thresholdsExceeded >= 2); // Alert when 2 or more thresholds are exceeded
+
+  // Activate buzzer immediately when wildfire is first detected
+  if (wildfireDetected && !previousWildfireState)
+  {
+    Serial.println("POTENTIAL WILDFIRE DETECTED - activating local alert buzzer");
+    soundFireAlert(BUZZER_ALERT_DURATION);
+  }
+  // Only stop buzzer if wildfire is no longer detected AND the alert has been active for at least BUZZER_ALERT_DURATION
+  // This ensures the alert always sounds for at least the full 10 seconds
+  else if (!wildfireDetected && previousWildfireState && isBuzzerActive())
+  {
+    // Let the buzzer complete its full duration instead of stopping it early
+    // The updateBuzzer() function will automatically stop it after the duration is complete
+    Serial.println("Wildfire no longer detected - buzzer will complete its alert cycle");
+  }
 
   // Update wildfire alert LED
   if (wildfireDetected)
@@ -460,6 +587,12 @@ void loop()
         Serial.println("Wildfire alert published to MQTT");
         Serial.print("Thresholds exceeded: ");
         Serial.println(thresholdsExceeded);
+
+        // We no longer need this here since we activate the buzzer immediately when wildfire is detected
+        // if (!isBuzzerActive()) {
+        //   Serial.println("POTENTIAL WILDFIRE DETECTED - activating local alert buzzer");
+        //   soundFireAlert(BUZZER_ALERT_DURATION);
+        // }
       }
       else
       {
@@ -506,6 +639,9 @@ void loop()
   {
     Serial.println("Failed to get valid readings from DHT11");
   }
+
+  // Update the buzzer (controls on/off timing for alerts)
+  updateBuzzer();
 
   // Wait before next reading
   delay(1000);
