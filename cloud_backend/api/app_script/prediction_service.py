@@ -317,9 +317,11 @@ def make_future_predictions(input_data, steps=24, visualize=False, save_results=
     )
 
     # Prepare historical data with the same structure as predictions
+    # Take only the last 60 records to ensure we have exactly 60 historical points
     historical_data = (
         data[["timestamp", "temperature", "humidity", "smoke", "ir_temperature"]]
         .copy()
+        .tail(60)  # Limit to exactly 60 most recent historical points
         .reset_index(drop=True)
     )
 
@@ -352,6 +354,12 @@ def make_future_predictions(input_data, steps=24, visualize=False, save_results=
         )
         all_predictions_df["timestamp"] = all_predictions_df["timestamp"].dt.strftime(
             "%Y-%m-%d %H:%M:%S"
+        )
+
+    # Before returning, verify we have exactly 60 historical + 24 predicted points
+    if len(historical_data) != 60 or len(all_predictions_df) != steps:
+        print(
+            f"Warning: Expected 60 historical + {steps} predicted points, but got {len(historical_data)} historical + {len(all_predictions_df)} predicted"
         )
 
     # Combine historical and predicted data

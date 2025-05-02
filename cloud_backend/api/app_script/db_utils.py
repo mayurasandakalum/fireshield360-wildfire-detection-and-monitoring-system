@@ -295,12 +295,20 @@ def get_data_for_prediction(minutes=60):
         DataFrame with minute-level data suitable for prediction
     """
     # First try to get real data from MongoDB
-    raw_data = fetch_sensor_data(minutes=minutes, fallback_to_available=True)
+    raw_data = fetch_sensor_data(
+        minutes=minutes * 2, fallback_to_available=True
+    )  # Get more data than needed
 
     if raw_data is not None and len(raw_data) > 0:
         # We got some data, resample it to minute level
         resampled_data = resample_to_minute_level(raw_data, required_points=minutes)
         if resampled_data is not None and len(resampled_data) >= minutes:
+            # If we have more than the required number of minutes, take only the most recent ones
+            if len(resampled_data) > minutes:
+                print_info(
+                    f"Taking only the most recent {minutes} minute-level records from {len(resampled_data)} available"
+                )
+                resampled_data = resampled_data.tail(minutes).reset_index(drop=True)
             return resampled_data
 
     # If we don't have enough data, generate synthetic data

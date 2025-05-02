@@ -169,15 +169,25 @@ def predict_from_db():
         # Add data source information
         source_info = "real" if "synthetic" not in data.columns else "synthetic"
 
+        # Count how many historical and predicted points we have
+        historical_count = len(
+            predictions_df[predictions_df["data_type"] == "historical"]
+        )
+        predicted_count = len(
+            predictions_df[predictions_df["data_type"] == "predicted"]
+        )
+
         # Convert to dict for JSON serialization
         result = {
             "status": "success",
             "message": f"Predictions completed successfully using {source_info} data",
+            "historical_points": historical_count,
+            "predicted_points": predicted_count,
             "data": predictions_df.to_dict(orient="records"),
         }
 
         print_success(
-            f"Generated {len(predictions_df)} data points (historical + predictions)"
+            f"Generated {historical_count} historical + {predicted_count} prediction data points"
         )
         return jsonify(result), 200
 
