@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from tensorflow.keras.models import load_model
+import pytz
 
 # Set model directory relative to this file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -34,9 +35,31 @@ def make_future_predictions(input_data, steps=24, visualize=False, save_results=
     # Make a copy to avoid modifying the original data
     data = input_data.copy()
 
-    # Convert timestamp to datetime if it's not already
+    # Determine the timezone from the first timestamp
+    tz_info = None
     if isinstance(data["timestamp"].iloc[0], str):
-        data["timestamp"] = pd.to_datetime(data["timestamp"], utc=True)
+        # Parse the timestamp string to get timezone info
+        try:
+            first_ts = pd.to_datetime(data["timestamp"].iloc[0])
+            tz_info = first_ts.tzinfo
+            # If timezone wasn't detected but we expect UTC+5:30
+            if tz_info is None:
+                # Try to extract timezone info from the string directly
+                if "+" in data["timestamp"].iloc[0]:
+                    # Default to Asia/Kolkata for UTC+5:30
+                    tz_info = pytz.timezone("Asia/Kolkata")
+                    print("Using Asia/Kolkata timezone (UTC+5:30)")
+        except Exception as e:
+            print(f"Warning: Could not determine timezone from timestamp: {e}")
+            # Default to Asia/Kolkata (UTC+5:30)
+            tz_info = pytz.timezone("Asia/Kolkata")
+
+    # Convert timestamp to datetime preserving the timezone
+    if isinstance(data["timestamp"].iloc[0], str):
+        data["timestamp"] = pd.to_datetime(data["timestamp"], utc=False)
+        # If timezone info was determined, apply it to timestamps without timezone
+        if tz_info is not None and data["timestamp"].dt.tz is None:
+            data["timestamp"] = data["timestamp"].dt.tz_localize(tz_info)
 
     # Define the numerical columns
     numerical_columns = ["temperature", "humidity", "smoke", "ir_temperature"]
@@ -155,8 +178,9 @@ def make_future_predictions(input_data, steps=24, visualize=False, save_results=
     all_predictions_df = pd.DataFrame()
     sequence_length = 60
 
-    # Generate future timestamps
+    # Generate future timestamps in the same timezone as input data
     last_timestamp = data["timestamp"].iloc[-1]
+    # Preserve timezone when generating future timestamps
     future_timestamps = [
         last_timestamp + timedelta(minutes=i + 1) for i in range(steps)
     ]
@@ -311,13 +335,24 @@ def make_future_predictions(input_data, steps=24, visualize=False, save_results=
     historical_data["data_type"] = "historical"
     all_predictions_df["data_type"] = "predicted"
 
-    # Convert timestamps to string for JSON serialization
-    historical_data["timestamp"] = historical_data["timestamp"].dt.strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
-    all_predictions_df["timestamp"] = all_predictions_df["timestamp"].dt.strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
+    # Convert timestamps to string for JSON serialization, preserving timezone info
+    if historical_data["timestamp"].dt.tz is not None:
+        # Format with timezone info
+        historical_data["timestamp"] = historical_data["timestamp"].dt.strftime(
+            "%Y-%m-%d %H:%M:%S%z"
+        )
+        all_predictions_df["timestamp"] = all_predictions_df["timestamp"].dt.strftime(
+            "%Y-%m-%d %H:%M:%S%z"
+        )
+    else:
+        # If no timezone info, format without it but add warning
+        print("Warning: No timezone information available in timestamps")
+        historical_data["timestamp"] = historical_data["timestamp"].dt.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+        all_predictions_df["timestamp"] = all_predictions_df["timestamp"].dt.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
 
     # Combine historical and predicted data
     combined_df = pd.concat([historical_data, all_predictions_df], ignore_index=True)
