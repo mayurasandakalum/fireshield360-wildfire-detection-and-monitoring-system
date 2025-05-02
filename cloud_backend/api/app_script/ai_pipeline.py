@@ -149,8 +149,25 @@ def setup_mqtt():
 
 
 def main():
+    print("=" * 80)
+    print("IoT Data Collection and Analysis System".center(80))
+    print("=" * 80)
+
     print("AI pipeline started")
     print(f"Images will be saved to: {image_folder}")
+
+    # Import and start the API server
+    try:
+        from api_server import start_api_server
+
+        api_thread = start_api_server(host="0.0.0.0", port=5000, debug=False)
+        print("REST API available for predictions - send 60 datapoints to /predict")
+        print("=" * 80)
+    except Exception as e:
+        print(f"Failed to start API server: {e}")
+        import traceback
+
+        traceback.print_exc()
 
     # Setup MQTT client
     mqtt_client = setup_mqtt()
