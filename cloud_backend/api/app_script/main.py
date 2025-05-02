@@ -22,6 +22,9 @@ from utils.terminal import (
     print_success,
 )
 
+# Import MongoDB connection
+from db_utils import get_mongodb_client
+
 # Flag to control the main loop
 running = True
 
@@ -60,6 +63,17 @@ def main():
     # Ensure directories exist
     os.makedirs(IMAGE_FOLDER, exist_ok=True)
     os.makedirs(AI_MODELS_DIR, exist_ok=True)
+
+    # Initialize MongoDB connection
+    try:
+        mongo_client = get_mongodb_client()
+        if mongo_client:
+            print_success("MongoDB connection established")
+        else:
+            print_warning("Failed to connect to MongoDB - DB features will be limited")
+    except Exception as e:
+        print_error(f"MongoDB initialization error: {e}")
+        print_warning("Continuing without MongoDB connection")
 
     # Initialize Telegram notifications if enabled
     if TELEGRAM_ENABLED:
