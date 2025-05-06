@@ -257,7 +257,6 @@ The project includes a variety of visualizations to aid analysis and interpretat
    - Forecasts 24 future timesteps with a clear distinction between historical and predicted data.
 
    ![Prediction vs Actual](images/prediction_vs_actual.png)
-   _Scatter plot of predicted vs. actual values._
 
 To generate these visualizations, run the notebook cells under the "Temporal Pattern Analysis," "Correlation Analysis," and "Model Building" sections.
 
