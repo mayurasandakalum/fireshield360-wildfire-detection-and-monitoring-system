@@ -1,4 +1,4 @@
-# FirePredict360: ML-Powered Wildfire Detection & Monitoring
+# FireShield360: ML-Powered Wildfire Detection & Monitoring
 
 ![FirePredict360 Cover](images/cover.jpg)  
 _Real-time wildfire detection using IoT, machine learning, and cloud technology._
