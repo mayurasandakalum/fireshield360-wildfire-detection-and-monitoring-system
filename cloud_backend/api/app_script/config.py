@@ -1,15 +1,15 @@
 import os
 
 # MQTT broker settings
-MQTT_BROKER = "7ce36aef28e949f4b384e4808389cffc.s1.eu.hivemq.cloud"
+MQTT_BROKER = "YOUR_MQTT_BROKER_ADDRESS"  # Replace with your MQTT broker address
 MQTT_PORT = 8883
-MQTT_USER = "hivemq.webclient.1745152369573"
-MQTT_PASSWORD = "f%h3.X!9WGm0HtoJ1sO&"
+MQTT_USER = "YOUR_MQTT_USERNAME"  # Replace with your MQTT username
+MQTT_PASSWORD = "YOUR_MQTT_PASSWORD"  # Replace with your MQTT password
 MQTT_TOPIC_SENSOR = "esp32_01/sensors/data"
 MQTT_TOPIC_VERIFIED = "esp32_01/verified/status"
 
 # ESP32 CAM settings
-CAMERA_IP = "192.168.8.194"
+CAMERA_IP = "192.168.1.100"  # Replace with your ESP32 camera's IP address
 CAPTURE_URL = f"http://{CAMERA_IP}/capture"
 CONTROL_URL = f"http://{CAMERA_IP}/control"
 
@@ -42,6 +42,6 @@ AI_CONF_THRESHOLD = 0.10
 AI_IOU_THRESHOLD = 0.10
 
 # Telegram notification settings
-TELEGRAM_TOKEN = "7336878856:AAFb1UB5ea5qxJvGldgFKyDfdIiiVwQ-4EE"
-TELEGRAM_CHAT_ID = "1219814523"  # Your Telegram chat ID
+TELEGRAM_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"  # Replace with your Telegram bot token
+TELEGRAM_CHAT_ID = "YOUR_TELEGRAM_CHAT_ID"  # Replace with your Telegram chat ID
 TELEGRAM_ENABLED = True  # Enable/disable Telegram notifications

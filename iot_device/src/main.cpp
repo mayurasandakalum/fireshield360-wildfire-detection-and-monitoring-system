@@ -68,11 +68,11 @@ bool wildfireDetected = false;
 bool verifiedWildfireDetected = false;
 
 // WiFi credentials
-const char *ssid = "NeuralNet";
-const char *password = "camtasia";
+const char *ssid = "YOUR_WIFI_SSID";         // Replace with your WiFi SSID
+const char *password = "YOUR_WIFI_PASSWORD"; // Replace with your WiFi password
 
 // MQTT Broker details
-const char *mqtt_server = "7ce36aef28e949f4b384e4808389cffc.s1.eu.hivemq.cloud";
+const char *mqtt_server = "YOUR_MQTT_BROKER"; // Replace with your MQTT broker address
 const int mqtt_port = 8883;
 const char *mqtt_topic = "esp32_01/sensors/data"; // Removed dedicated wildfire topic
 
@@ -80,8 +80,8 @@ const char *mqtt_topic = "esp32_01/sensors/data"; // Removed dedicated wildfire 
 const char *verification_topic = "esp32_01/verified/status";
 
 // MQTT credentials
-const char *mqtt_username = "hivemq.webclient.1745152369573";
-const char *mqtt_password = "f%h3.X!9WGm0HtoJ1sO&";
+const char *mqtt_username = "YOUR_MQTT_USERNAME"; // Replace with your MQTT username
+const char *mqtt_password = "YOUR_MQTT_PASSWORD"; // Replace with your MQTT password
 
 // Last time data was sent
 unsigned long lastPublishTime = 0;
