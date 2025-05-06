@@ -1,0 +1,2 @@
+# Ignore all data exports except samples
+*.csv

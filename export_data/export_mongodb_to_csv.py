@@ -16,8 +16,10 @@ from pymongo.server_api import ServerApi
 from pymongo.errors import ConnectionFailure, OperationFailure
 
 # MongoDB Connection Settings
-MONGO_CONNECTION_STRING = "mongodb+srv://fireshield360:uHOgfe3X2Lm3usCO@cluster0.aateg5h.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-DATABASE_NAME = "fireshield360-db"
+MONGO_CONNECTION_STRING = (
+    "your_mongodb_connection_string"  # Replace with your MongoDB connection string
+)
+DATABASE_NAME = "your_database_name"  # Replace with your database name
 COLLECTION_NAME = "sensor-readings"
 
 
