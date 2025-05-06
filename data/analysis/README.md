@@ -1,6 +1,6 @@
 # FireShield360: Wildfire Detection and Prediction System
 
-![FireShield360 Cover Image](images/cover_image.jpg)
+![FireShield360 Cover Image](images/cover.jpg)
 _Empowering early wildfire detection with advanced sensor data analytics and machine learning._
 
 ---
@@ -32,9 +32,6 @@ _Empowering early wildfire detection with advanced sensor data analytics and mac
 FireShield360 is an advanced wildfire detection and prediction system designed to analyze environmental sensor data for early identification of wildfire risks. By leveraging time-series data from IoT sensors (temperature, humidity, smoke, and infrared temperature), the system employs feature engineering, outlier detection, and Long Short-Term Memory (LSTM) neural networks to forecast environmental conditions and assess wildfire potential.
 
 This project is built using Python, Pandas, TensorFlow, and Plotly, with a focus on robust data preprocessing, feature engineering, and model optimization for real-time applications.
-
-![Wildfire Sensor Network](images/wildfire_sensor_network.png)
-_Illustration of IoT sensor network deployed in fire-prone areas._
 
 ---
 
@@ -151,8 +148,10 @@ This will generate a CSV file containing historical and predicted values, along 
 
 - **Visualization**: Interactive Plotly plots showing historical and predicted values for each sensor.
 
-![Sample Prediction Plot](images/prediction_plot.png)
-_Example of historical vs. predicted values for temperature sensor._
+<img src="images/forcast-temperature.png" alt="Temperature Prediction Plot" width="800" height="300"/>
+<img src="images/forcast-ir-temperature.png" alt="IR Temperature Prediction Plot" width="800" height="300"/>
+<img src="images/forcast-humidity.png" alt="Humidity Prediction Plot" width="800" height="300"/>
+<img src="images/forcast-smoke.png" alt="Smoke Prediction Plot" width="800" height="300"/>
 
 ---
 
@@ -191,7 +190,7 @@ The data processing pipeline is designed to ensure high-quality input for model 
    - Checks correlations between sensors (e.g., temperature and smoke) for physical consistency.
    - Ensures data shape and integrity after each processing step.
 
-![Data Pipeline Diagram](images/data_pipeline.png)
+[![](https://mermaid.ink/img/pako:eNptlt1u2kgUx19lZGnbGxz5C5L4otoEQ6CBbhdQV-qyiib2AUa1Z7z2OAmN8k77DPtke84MYNPuRaTY_p3_-Z7h1UlVBk7suK67lqmSG7GN15KxnO9Vo2O2ES-QmRdKfYvZjsssqfizpFd6BwXELIMNb3K9lkZjk6vndMcrzVYJQYzd_Ll2ZopnbMGf2RJkrSqWcM3Xzl_MdT-w219f0d0j5DFbO2ORa8Dv8CRSYNOEvYe6DIMHz3-_dtibVbw1dkPUJR02zIFLIbcoaL8P7XefgEqV7JOSLtQ1SC14zoYqbwpZt7Rv8QDxBRTqCdhc1DUKsi88b6BDBpYMkRwq-QSUpSig1rwoO1hosQixCRYsB_apKaASKXo3Ea_2ZVc2MnyC-GpXQb1TecZsIbpZJZairA5VWkFRQsV1UwH7wELv33-GLW2zSoIWnzSFyITeI-t7v7SkzSoJW3JZqG9gMM9rOZtWErXcdGFiQDI4d24zGlGdqDmQmbxr0CzbRCdsZKgxUr81Ohem7xpSLZQ8MWPLUNZf3TpVmOoc9E5lND7v2Jjym_6-aF8ezGz6dx1t04puQcc28Tv7dGcfyNGQlyW1n2tG0reqkVnbrjsrPaEygC3-SG6FhPN2TSxFejQj7iOmj221FrWNfmJmTuUUFvtDyEw9_0hQV2Z8--NrakKiCi6kW5eQio1Iu8ghhEOkPkd69KIrnmo2UU3Vw3bse2yupN51aH7AH6kG-zQ3AzvCYyE7S8yWbRLwTvBz7HKPLXWGqgL_m_OXjsFBOCDhBdfA1IYN8SzZAuZyk6aQ0xh32z6xwzYJuc1_i7Wz20hd8b0ejnuPDfDPD7xCdA0PzkJylojNBiqQKdq9Y5-hSvEQ4OjWeu-Uyk7sJCJ_Eyykm1R7iYcGm8oMXo5VJ83O1rm4AEcXdLYcsRQxs0Nud0UXlOIRycwW4duEAqlObo69eDTxTDtDNi1KVWmOubAbyfN9LTrhBwf-WITzxyjrPk7tg2-agTNXsDGuVa1_lp3aAfrYiWKJvTrf0I-WITn78RSpPo0kK-m44tUWdGtnxe_Rbo6XUM5uG5GfTdq9BUj5cwUlN-7_bkw7W-ggQ6u0xIGFn_fg3k7sPe3SqsKdYbPlas6M1w5lR-6eVmv0hLNGg4ojs1FVQVVvQTsrM6pKY4pC9Ut5rbvBzyxEwd-BpBkAFkRuraFkmE0mTBVb9zObx8zkwZ9oM76IuuG5-I6jAzVesR3YZjS3lTlosXEjz1sztxTFUPBv8LAx4T6Urfv_sbFxzO11yHNX4-nViZjh6cgfRY4XycmGrvB6x0v8NYCF0G9Oz9lWInPiDc9r6Dl4-eFRhc_OKxmsHfPTYe3QjX_8-eCsJdmVXH5VqnBiXTVoWalmuzvpNGWGZUwE31a8RQBXpxriIa2dGE8GknDiV-fFicNgcNG_9AbXgyj0wv71oN9z9k7s-pcXXnAVRaHvh4PA618Fbz3nu3HrX3jR5VU_ioKwHwTX0XXw9h8UocLT?type=png)](https://mermaid.live/edit#pako:eNptlt1u2kgUx19lZGnbGxz5C5L4otoEQ6CBbhdQV-qyiib2AUa1Z7z2OAmN8k77DPtke84MYNPuRaTY_p3_-Z7h1UlVBk7suK67lqmSG7GN15KxnO9Vo2O2ES-QmRdKfYvZjsssqfizpFd6BwXELIMNb3K9lkZjk6vndMcrzVYJQYzd_Ll2ZopnbMGf2RJkrSqWcM3Xzl_MdT-w219f0d0j5DFbO2ORa8Dv8CRSYNOEvYe6DIMHz3-_dtibVbw1dkPUJR02zIFLIbcoaL8P7XefgEqV7JOSLtQ1SC14zoYqbwpZt7Rv8QDxBRTqCdhc1DUKsi88b6BDBpYMkRwq-QSUpSig1rwoO1hosQixCRYsB_apKaASKXo3Ea_2ZVc2MnyC-GpXQb1TecZsIbpZJZairA5VWkFRQsV1UwH7wELv33-GLW2zSoIWnzSFyITeI-t7v7SkzSoJW3JZqG9gMM9rOZtWErXcdGFiQDI4d24zGlGdqDmQmbxr0CzbRCdsZKgxUr81Ohem7xpSLZQ8MWPLUNZf3TpVmOoc9E5lND7v2Jjym_6-aF8ezGz6dx1t04puQcc28Tv7dGcfyNGQlyW1n2tG0reqkVnbrjsrPaEygC3-SG6FhPN2TSxFejQj7iOmj221FrWNfmJmTuUUFvtDyEw9_0hQV2Z8--NrakKiCi6kW5eQio1Iu8ghhEOkPkd69KIrnmo2UU3Vw3bse2yupN51aH7AH6kG-zQ3AzvCYyE7S8yWbRLwTvBz7HKPLXWGqgL_m_OXjsFBOCDhBdfA1IYN8SzZAuZyk6aQ0xh32z6xwzYJuc1_i7Wz20hd8b0ejnuPDfDPD7xCdA0PzkJylojNBiqQKdq9Y5-hSvEQ4OjWeu-Uyk7sJCJ_Eyykm1R7iYcGm8oMXo5VJ83O1rm4AEcXdLYcsRQxs0Nud0UXlOIRycwW4duEAqlObo69eDTxTDtDNi1KVWmOubAbyfN9LTrhBwf-WITzxyjrPk7tg2-agTNXsDGuVa1_lp3aAfrYiWKJvTrf0I-WITn78RSpPo0kK-m44tUWdGtnxe_Rbo6XUM5uG5GfTdq9BUj5cwUlN-7_bkw7W-ggQ6u0xIGFn_fg3k7sPe3SqsKdYbPlas6M1w5lR-6eVmv0hLNGg4ojs1FVQVVvQTsrM6pKY4pC9Ut5rbvBzyxEwd-BpBkAFkRuraFkmE0mTBVb9zObx8zkwZ9oM76IuuG5-I6jAzVesR3YZjS3lTlosXEjz1sztxTFUPBv8LAx4T6Urfv_sbFxzO11yHNX4-nViZjh6cgfRY4XycmGrvB6x0v8NYCF0G9Oz9lWInPiDc9r6Dl4-eFRhc_OKxmsHfPTYe3QjX_8-eCsJdmVXH5VqnBiXTVoWalmuzvpNGWGZUwE31a8RQBXpxriIa2dGE8GknDiV-fFicNgcNG_9AbXgyj0wv71oN9z9k7s-pcXXnAVRaHvh4PA618Fbz3nu3HrX3jR5VU_ioKwHwTX0XXw9h8UocLT)
 _Diagram illustrating the data processing workflow._
 
 ---
@@ -221,9 +220,6 @@ The system uses LSTM neural networks for time-series forecasting, trained on fea
 - **Performance Metrics**:
   - Evaluates models using MSE, RMSE, MAE, R², and MAPE.
   - Visualizes predictions vs. actual values and future forecasts.
-
-![LSTM Architecture](images/lstm_architecture.png)
-_Diagram of the LSTM model architecture used for forecasting._
 
 ---
 
