@@ -175,6 +175,12 @@ The cloud backend (`cloud_backend/api/app_script`) processes IoT data and trigge
 - **Database** (`db_utils.py`):
   - Stores sensor data in MongoDB.
   - Generates synthetic data if real data is unavailable.
+- **Notifications** (`notifications/telegram_notifier.py`):
+  - Sends real-time alerts with sensor data and detection images.
+  - Example notification:
+
+![Telegram Bot Wildfire Alert](images/telegram-wildfire-alert.jpg)
+_Telegram bot notification showing wildfire detection with sensor readings and fire detection images._
 
 ### Machine Learning Models
 
